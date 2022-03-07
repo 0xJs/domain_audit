@@ -2,7 +2,7 @@
 The tool is a wrapper around PowerView, Impacket, PowerUpSQL and Bloodhound to execute a lot of checks I normally perform during a AD pentest/assesment. The tool is still being developed and tested. It is possible a check will give errors since it hasn't been tested in many environments yet. I'm currently building a big Windows AD lab with vulnerabilities and will implement a lot more to further test the tool. The tool could give false positives and I would always recommend to double check results!
 
 ## Installation
-- Make sure that Python and [Impacket](https://github.com/SecureAuthCorp/impacket) are installed. 
+- Make sure that Python and [Impacket](https://github.com/SecureAuthCorp/impacket) are installed for kerberoasting/as-rep roasting.
 - Make sure the path viariables to the following tools are correct, should be if the whole repository is cloned.
 ```
 $powerview_path = "$PSScriptRoot\import\PowerView.ps1" 
