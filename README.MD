@@ -28,26 +28,24 @@ The tool will create a directory with the domain name and date on the desktop. I
 
 ## Checks
 The script will execute the following in order:
-- Change DNS to DC IP and add domain to hosts file.
-- Create directory on desktop for output
-- Collect basic data of AD objects and place them in `/data/` directory in `.csv` format.
-- Collect data with bloodhound 
-- Create list of all users, all enabled users, all admin accounts, all computers and all groups in `/data/`
+- Collect basic data of AD objects and place them in `/data/` directory in `.csv` format
+- Collect data with bloodhound - Collectionmethods all, acl and sessions
+- Create list of all (enabled) users, admin accounts, computers and groups in `/data/`
 - Execute a runas in a new window for the SQL checks
-  - Check for SQL instances
+  - Check for SQL instances in the domain
   - Check if current user has access to SQL instances
-    - Check if the user is sysadmin
+    - Check if the current user is sysadmin
     - Run invoke-sqlaudit
     - Check for database links as sysadmin
 - Check if AzureAD is installed
 - Check if SSO is configured
 - Check password policy configuration
-- Check if there is a GPO with LAPS
+- Check if there is a GPO with LAPS in its name
     - Check to which OU's the GPO is applied to
     - Check the LAPS policy
 - Check if there are systems with LAPS installed
     - Check if there are systems where LAPS isn't installed on
-- If LAPS GPO or LAPS computers - Check if the current user can read LAPS passwords
+- If LAPS GPO found or LAPS computers found - Check if the current user can read LAPS passwords
 - Check if the amount of admins is more then 5% (High amount of admins in the domain)
 - Get all users with a description - Manually check for passwords or interesting information
 - Get all groups with a description - Manually check for passwords or interesting information
