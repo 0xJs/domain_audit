@@ -40,9 +40,19 @@ The script will execute the following in order:
 - Check if AzureAD is installed
 - Check if SSO is configured
 - Check password policy configuration
+    - Check for cleartextpasswords = 1
+    - Check passwordlength
+    - Check passwordcomplexity
+    - Check account lockout
 - Check if there is a GPO with LAPS in its name
     - Check to which OU's the GPO is applied to
     - Check the LAPS policy
+        - Check adminaccountname
+        - Check passwordcomplexity
+        - Check passwordlength
+        - Check passwordagedays
+        - Check pwdexpirationprotection enabled
+        - Check admpwdenabled  
 - Check if there are systems with LAPS installed
     - Check if there are systems where LAPS isn't installed on
 - If LAPS GPO found or LAPS computers found - Check if the current user can read LAPS passwords
