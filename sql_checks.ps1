@@ -71,61 +71,66 @@ if ($count -ge 1){
 		Get-SQLConnectionTest -Instance $sqlserver
 	}
 	$count = $results | Where-Object -Property status -Like Accessible | Measure-Object | Select-Object -expand Count
-
-	# If able to connect to a MSSQL server.
-	$file = "$findings_path\SQLserver_user_access.txt"
-
-	Write-Host -ForegroundColor Red "[-] The current user can access $count MSSQL instances"
-	Write-Host "Writing to $file"
-	$results | Out-File $file
-	Write-Host " "
-
-# Checking if the user is sysadmin on the instance
-	Write-Host "---Checking if the user is sysadmin on the accessible instances---"	
-	$accessible_sql = $results | Where-Object -Property status -Like Accessible | Get-SQLServerInfo
-	$data = $accessible_sql | Where-Object -Property IsSysadmin -Match Yes
-	$file = "$findings_path\SQLserver_user_issysadmin.txt"
-	if ($data.IsSysadmin -match "Yes"){ 
-			$count = $data | Measure-Object | Select-Object -expand Count
-			Write-Host -ForegroundColor Red "[-] The current user is sysadmin to $count MSSQL instances"
-			Write-Host "Writing to $file"
-			$data | Out-File $file
-		}
-		else {
-			Write-Host -ForegroundColor DarkGreen "[+] The current user is not sysdmin to any SQL instances"
-		}
-	Write-Host " "
-		
-# Audit SQL instances
-	Write-Host "---Running Invoke-SQLAudit on the accessible instances---"	
-	$data = $results | Where-Object -Property status -Like Accessible | Invoke-SQLAudit -ErrorAction silentlycontinue
-	$file = "$findings_path\SQLserver_sqlaudit.txt"
-	if ($data -eq $null){ 
-			Write-Host -ForegroundColor DarkGreen "[+] Invoke-SQLAudit didn't found anything"
-		}
-		else {
-			$count = $data | Measure-Object | Select-Object -expand Count
-			Write-Host -ForegroundColor Red "[-] Invoke-SQLAudit found $count issues"
-			Write-Host "Writing to $file"
-			$data | Out-File $file
-		}
-	Write-Host " "
-
-# Check SQL Server database links
-	Write-Host "---Checking database links for sysadmin security context---"	
-	$data = $results | Where-Object -Property status -Like Accessible | Get-SQLServerLinkCrawl | Where-Object -Property  sysadmin -Match 1
-	$file = "$findings_path\SQLserver_sysadminlinks.txt"
-	if ($data -eq $null){ 
-			Write-Host -ForegroundColor DarkGreen "[+] There are no links which run under the security context of a sysadmin user"
-		}
-		else {
-			$count = $data | Measure-Object | Select-Object -expand Count
-			Write-Host -ForegroundColor Red "[-] There are $count links which run under the security context of a sysadmin user"
-			Write-Host "Writing to $file"
-			$data | Out-File $file
-		}
-	Write-Host " "
-
+	
+	if ($count -ge 1){
+		# If able to connect to a MSSQL server.
+		$file = "$findings_path\SQLserver_user_access.txt"
+	
+		Write-Host -ForegroundColor Red "[-] The current user can access $count MSSQL instances"
+		Write-Host "Writing to $file"
+		$results | Out-File $file
+		Write-Host " "
+	
+		# Checking if the user is sysadmin on the instance
+		Write-Host "---Checking if the user is sysadmin on the accessible instances---"	
+		$accessible_sql = $results | Where-Object -Property status -Like Accessible | Get-SQLServerInfo
+		$data = $accessible_sql | Where-Object -Property IsSysadmin -Match Yes
+		$file = "$findings_path\SQLserver_user_issysadmin.txt"
+		if ($data.IsSysadmin -match "Yes"){ 
+				$count = $data | Measure-Object | Select-Object -expand Count
+				Write-Host -ForegroundColor Red "[-] The current user is sysadmin to $count MSSQL instances"
+				Write-Host "Writing to $file"
+				$data | Out-File $file
+			}
+			else {
+				Write-Host -ForegroundColor DarkGreen "[+] The current user is not sysdmin to any SQL instances"
+			}
+		Write-Host " "
+			
+		# Audit SQL instances
+		Write-Host "---Running Invoke-SQLAudit on the accessible instances---"	
+		$data = $results | Where-Object -Property status -Like Accessible | Invoke-SQLAudit -ErrorAction silentlycontinue
+		$file = "$findings_path\SQLserver_sqlaudit.txt"
+		if ($data -eq $null){ 
+				Write-Host -ForegroundColor DarkGreen "[+] Invoke-SQLAudit didn't found anything"
+			}
+			else {
+				$count = $data | Measure-Object | Select-Object -expand Count
+				Write-Host -ForegroundColor Red "[-] Invoke-SQLAudit found $count issues"
+				Write-Host "Writing to $file"
+				$data | Out-File $file
+			}
+		Write-Host " "
+	
+		# Check SQL Server database links
+		Write-Host "---Checking database links for sysadmin security context---"	
+		$data = $results | Where-Object -Property status -Like Accessible | Get-SQLServerLinkCrawl | Where-Object -Property  sysadmin -Match 1
+		$file = "$findings_path\SQLserver_sysadminlinks.txt"
+		if ($data -eq $null){ 
+				Write-Host -ForegroundColor DarkGreen "[+] There are no links which run under the security context of a sysadmin user"
+			}
+			else {
+				$count = $data | Measure-Object | Select-Object -expand Count
+				Write-Host -ForegroundColor Red "[-] There are $count links which run under the security context of a sysadmin user"
+				Write-Host "Writing to $file"
+				$data | Out-File $file
+			}
+		Write-Host " "
+	
+	}
+	else {
+	Write-Host -ForegroundColor Green "[+] The current user can't access any MSSQL instances"	
+	}
 }
 else {
 	Write-Host -ForegroundColor DarkGreen "[+] There are no SQL instances"
