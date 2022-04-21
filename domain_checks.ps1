@@ -343,7 +343,7 @@ if ($data -eq $null){
 						Write-Host -ForegroundColor Yellow "[+] The password length is the default 14"
 					}
 					Elseif (($data2 | Where-Object -Property ValueName -Match PasswordLength | Select-Object ValueData).ValueData -lt "14") {
-						Write-Host -ForegroundColor Red "[+] The password complexity is less then 14"
+						Write-Host -ForegroundColor Red "[+] The password length is less then 14"
 					}
 					Elseif (($data2 | Where-Object -Property ValueName -Match PasswordLength | Select-Object ValueData).ValueData -gt "14") {
 						Write-Host -ForegroundColor DarkGreen "[+] The password length is longer then 14"
