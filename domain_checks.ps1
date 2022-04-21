@@ -888,7 +888,7 @@ Write-Host "---Checking if there is a computerobject part of a high privileged g
 $data = Get-DomainGroup -Domain $Domain -Server $Server -Credential $Creds -AdminCount | Get-DomainGroupMember -Domain $Domain -Server $Server -Credential $Creds -Recurse -ErrorAction Silentlycontinue -WarningAction Silentlycontinue | Where-Object -Property MemberObjectClass -Match computer | Sort-Object -Unique | Select-Object MemberName
 $file = "$findings_path\computers_part_of_highprivilegedgroups.txt"
 if ($data -eq $null){ 
-		Write-Host -ForegroundColor DarkGreen "[+] There are computerobjects part of a high privileged groups"
+		Write-Host -ForegroundColor DarkGreen "[+] There are no computerobjects part of a high privileged groups"
     }
     else {
         $count = $data | Measure-Object | Select-Object -expand Count
