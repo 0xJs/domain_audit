@@ -384,7 +384,7 @@ if ($data -eq $null){
 # Check if there are systems where LAPS is enabled on
 Write-Host "---Checking if LAPS is enabled on any computerobject---"
 $data = Get-DomainComputer -Domain $Domain -Server $Server -Credential $Creds | Where-Object -Property ms-Mcs-AdmPwdExpirationTime
-$file = "$data_path\laps_comuters_enabled.txt"
+$file = "$data_path\laps_computers_enabled.txt"
 if ($data -eq $null){ 
 		Write-Host -ForegroundColor Red "[-] There are no systems where LAPS is enabled"
 		$file = "$findings_path\laps_notenabled.txt"
@@ -402,7 +402,7 @@ if ($data -eq $null){
 		# Check if there are systems where LAPS isn't enabled on
 		Write-Host "---Checking computerobjects where LAPS isn't enabled---"
 		$data = Get-DomainComputer -Domain $Domain -Server $Server -Credential $Creds | Where-Object -Property ms-Mcs-AdmPwdExpirationTime -Like $null | Select-Object samaccountname, lastlogon, whenchanged | Sort-Object whenchanged
-		$file = "$data_path\laps_comuters_disabled.txt"
+		$file = "$data_path\laps_computers_disabled.txt"
 		if ($data -eq $null){ 
 			Write-Host -ForegroundColor DarkGreen "[+] There are no systems where LAPS isn't enabled"
 		}
