@@ -886,7 +886,7 @@ Write-Host " "
 
 # Check if there is a computer part of a high priveleged group
 Write-Host "---Checking if there is a computerobject part of a high privileged group---"
-$data = Get-DomainGroup -Domain $Domain -Server $Server -Credential $Creds -AdminCount | Get-DomainGroupMember -Domain $Domain -Server $Server -Credential $Creds -Recurse -ErrorAction Silentlycontinue -WarningAction Silentlycontinue | Where-Object -Property MemberObjectClass -Match computer | Sort-Object -Unique | Select-Object MemberName
+$data = Get-DomainGroup -Domain $Domain -Server $Server -Credential $Creds -AdminCount | Get-DomainGroupMember -Domain $Domain -Server $Server -Credential $Creds -Recurse -ErrorAction Silentlycontinue -WarningAction Silentlycontinue | Where-Object -Property MemberObjectClass -Match computer | Select-Object MemberName
 $file = "$findings_path\computers_part_of_highprivilegedgroups.txt"
 if ($data -eq $null){ 
 		Write-Host -ForegroundColor DarkGreen "[+] There are no computerobjects part of a high privileged groups"
