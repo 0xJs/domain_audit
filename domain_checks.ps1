@@ -335,7 +335,7 @@ if ($data -eq $null){
 						Write-Host -ForegroundColor DarkGreen "[+] The password complexity is 4"
 					}
 					Else {
-						Write-Host -ForegroundColor Red "[+] The password complexity is less then 4"
+						Write-Host -ForegroundColor Red "[-] The password complexity is less then 4"
 					}
 					
 					# Check PasswordLength
@@ -343,7 +343,7 @@ if ($data -eq $null){
 						Write-Host -ForegroundColor Yellow "[+] The password length is the default 14"
 					}
 					Elseif (($data2 | Where-Object -Property ValueName -Match PasswordLength | Select-Object ValueData).ValueData -lt "14") {
-						Write-Host -ForegroundColor Red "[+] The password length is less then 14"
+						Write-Host -ForegroundColor Red "[-] The password length is less then 14"
 					}
 					Elseif (($data2 | Where-Object -Property ValueName -Match PasswordLength | Select-Object ValueData).ValueData -gt "14") {
 						Write-Host -ForegroundColor DarkGreen "[+] The password length is longer then 14"
@@ -357,7 +357,7 @@ if ($data -eq $null){
 						Write-Host -ForegroundColor DarkGreen "[+] The password age days is less then 30"
 					}
 					Elseif (($data2 | Where-Object -Property ValueName -Match PasswordAgeDays | Select-Object ValueData).ValueData -gt "30") {
-						Write-Host -ForegroundColor Red "[+] The password age days is longer then 30"
+						Write-Host -ForegroundColor Red "[-] The password age days is longer then 30"
 					}
 					
 					# Check PwdExpirationProtectionEnabled
@@ -365,7 +365,7 @@ if ($data -eq $null){
 						Write-Host -ForegroundColor DarkGreen "[+] The PwdExpirationProtectionEnabled is enabled"
 					}
 					Else {
-						Write-Host -ForegroundColor Red "[+] The PwdExpirationProtectionEnabled is disabled"
+						Write-Host -ForegroundColor Red "[-] The PwdExpirationProtectionEnabled is disabled"
 					}
 					
 					# Check AdmPwdEnabled
@@ -373,7 +373,7 @@ if ($data -eq $null){
 						Write-Host -ForegroundColor DarkGreen "[+] The LAPS policy is enabled"
 					}
 					Else {
-						Write-Host -ForegroundColor Red "[+] The LAPS policy is disabled"
+						Write-Host -ForegroundColor Red "[-] The LAPS policy is disabled"
 					}
 					
 			    }
