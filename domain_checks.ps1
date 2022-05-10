@@ -499,7 +499,7 @@ Write-Host " "
 
 # Check users with SPN set (kerberoasting)
 Write-Host "---Checking kerberoastable users---"
-$data = Import-Csv $data_users | Where-Object -Property serviceprincipalname | Where-Object -Property samaccountname -NotMatch krbtgt | Select-Object samaccountname, serviceprincipalname | Sort-Object -Property samaccountname
+$data = Get-DomainUser -Domain $Domain -Server $Server -Credential $Creds -SPN | Where-Object -Property samaccountname -NotMatch krbtgt | Select-Object samaccountname, serviceprincipalname | Sort-Object -Property samaccountname
 $file = "$findings_path\users_serviceprincipalname.txt"
 $file_hashes = "$findings_path\users_kerberoast_hashes.txt"
 if ($data -eq $null){ 
