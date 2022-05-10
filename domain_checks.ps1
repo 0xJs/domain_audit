@@ -164,6 +164,7 @@ $data = Get-Content $file
 $data = $data | Sort-Object -Unique 
 $data = $data -replace 'samaccountname', '' -replace '--------------', '' #remove strings
 $data = $data.Trim() | ? {$_.trim() -ne "" } #Remove spaces and white lines
+$data = $data | Sort-Object -Unique
 $data | Out-File $file
 
 Write-Host "[+] Saving a list of all groups to $data_path\list_groups.txt"
