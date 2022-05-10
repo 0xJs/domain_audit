@@ -435,7 +435,7 @@ Write-Host " "
 
 # Check if the amount of admins is more then 5% of all users
 Write-Host "---Checking if amount of admins is more then 5% of all users---"
-$data = Get-Content $data_path\list_admins.txt
+$data = Get-Content $data_path\list_admins.txt | sort-object -Unique
 $admincount = $data | Measure-object | Select-Object -expand Count
 $file = "$findings_path\alot_of_administrators.txt"
 $percentage_admins = ($admincount / $usercount ) * 100
