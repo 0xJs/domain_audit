@@ -522,8 +522,8 @@ Write-Host " "
 # Check if Administrator accounts has SPN set (kerberoasting)
 Write-Host "---Checking kerberoastable administrators---"
 $file = "$findings_path\administrators_serviceprincipalname.txt"
-$data = Get-DomainGroupMember -Domain $Domain -Server $Server -Credential $Creds "Domain Admins" -Recurse | Get-DomainUser -Domain $Domain -Server $Server -Credential $Creds -SPN | Select-Object samaccountname | Format-Table -Autosize 
-$data += Get-DomainGroupMember -Domain $Domain -Server $Server -Credential $Creds "Enterprise Admins" -Recurse | Get-DomainUser -Domain $Domain -Server $Server -Credential $Creds -SPN | Select-Object samaccountname | Format-Table -Autosize 
+$data = Get-DomainGroupMember -Domain $Domain -Server $Server -Credential $Creds "Domain Admins" -Recurse | Get-DomainUser -Domain $Domain -Server $Server -Credential $Creds -SPN | Select-Object samaccountname, serviceprincipalname | Format-Table -Autosize 
+$data += Get-DomainGroupMember -Domain $Domain -Server $Server -Credential $Creds "Enterprise Admins" -Recurse | Get-DomainUser -Domain $Domain -Server $Server -Credential $Creds -SPN | Select-Object samaccountname, serviceprincipalname | Format-Table -Autosize 
 
 if ($data -eq $null){ 
 		Write-Host -ForegroundColor DarkGreen "[+] There are no kerberoastable administrators"
