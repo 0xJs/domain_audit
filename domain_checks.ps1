@@ -401,15 +401,15 @@ if ($data -eq $null){
 		Write-Host " "
 		
 		# Check if there are systems where LAPS isn't enabled on
-		Write-Host "---Checking computerobjects where LAPS isn't enabled---"
-		$data = Get-DomainComputer -Domain $Domain -Server $Server -Credential $Creds | Where-Object -Property ms-Mcs-AdmPwdExpirationTime -Like $null | Select-Object samaccountname, lastlogon, whenchanged | Sort-Object whenchanged
+		Write-Host "---Checking Windows computerobjects where LAPS isn't enabled---"
+		$data = Get-DomainComputer -Domain $Domain -Server $Server -Credential $Creds | Where-Object {$_."ms-Mcs-AdmPwdExpirationTime" -Like $null -and $_.Operatingsystem -match "Windows" } | Select-Object samaccountname, lastlogon, whenchanged | Sort-Object whenchanged -Descending
 		$file = "$data_path\laps_computers_disabled.txt"
 		if ($data -eq $null){ 
-			Write-Host -ForegroundColor DarkGreen "[+] There are no systems where LAPS isn't enabled"
+			Write-Host -ForegroundColor DarkGreen "[+] There are no Windows systems where LAPS isn't enabled"
 		}
 		else {
 			$count = $data | Measure-Object | Select-Object -expand Count
-			Write-Host -ForegroundColor Red "[-] There are $count systems where LAPS isn't enabled"
+			Write-Host -ForegroundColor Red "[-] There are $count Windows systems where LAPS isn't enabled"
 			Write-Host "Writing to $file"
 			$data | Out-File $file
 		}
