@@ -366,7 +366,7 @@ if ($data -eq $null){
 						Write-Host -ForegroundColor DarkGreen "[+] The PwdExpirationProtectionEnabled is enabled"
 					}
 					Else {
-						Write-Host -ForegroundColor Red "[-] The PwdExpirationProtectionEnabled is disabled"
+						Write-Host -ForegroundColor Red "[-] The PwdExpirationProtectionEnabled is disabled or not configured (which means disabled)"
 					}
 					
 					# Check AdmPwdEnabled
