@@ -1,10 +1,5 @@
 # Author Jony Schats - 0xjs
 
-#TO DO LIST EXTRA CHECKS
-# Check who can read the LAPS password (data gathering) - Doesn't work because powerview gives errors, must be run from domain joined machine
-# Check for ACL's
-# Check for SQL links, and then if sysadmin!
-
 #Parameters
 Param(
    [Parameter(Mandatory=$true)]
