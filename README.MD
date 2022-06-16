@@ -3,7 +3,7 @@ The tool is a wrapper around PowerView, Impacket, PowerUpSQL and Bloodhound to e
 
 ## Installation
 - Make sure that Python and [Impacket](https://github.com/SecureAuthCorp/impacket) are installed for kerberoasting/as-rep roasting.
-- Make sure the path viariables to the following tools are correct, should be if the whole repository is cloned.
+- Make sure the path viariables to the following tools are correct, especially impacket.
 ```
 $powerview_path = "$PSScriptRoot\import\PowerView.ps1" 
 $impacket_path = "$PSScriptRoot\import\impacket"
