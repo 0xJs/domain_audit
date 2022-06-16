@@ -90,3 +90,7 @@ The script will execute the following in order:
 - Check if there are passwords in the sysvol
 - Create a list of all shares the current user has access to
 - Look for interesting files on all shares
+
+## TO-DO
+- Rewrite the script and use the try function and check if expected output is correct for each command before executing checks
+- Add -Skip parameter for Bloodhound and checking for interesting shares.
