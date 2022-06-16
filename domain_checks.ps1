@@ -174,7 +174,7 @@ Write-Host "---------- EXECUTING CHECKS ----------"
 
 Write-Host "---Executing SQL checks in another window because runas is required---"
 Write-Host -ForegroundColor Yellow "[+] Pleace manually supply the Password $Password"
-runas /noprofile /netonly /user:$Domain\$User "powershell.exe -NoExit $sqlchecks_path -Domain $Domain -Server $Server -User $User -Password $Password"
+runas /noprofile /netonly /user:$Domain\$User "powershell.exe -Exec bypass -NoExit $sqlchecks_path -Domain $Domain -Server $Server -User $User -Password $Password"
 
 #Check if AzureAD connect is in use
 Write-Host "---Checking if AzureAD connect is in use---"
