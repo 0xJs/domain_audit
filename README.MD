@@ -94,3 +94,6 @@ The script will execute the following in order:
 ## TO-DO
 - Rewrite the script and use the try function and check if expected output is correct for each command before executing checks
 - Add -Skip parameter for Bloodhound and checking for interesting shares.
+- Add ADCS checks?
+- Add GPO checks
+- Add Trust enumeration
