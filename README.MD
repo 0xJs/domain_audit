@@ -97,3 +97,4 @@ The script will execute the following in order:
 - Add ADCS checks?
 - Add GPO checks
 - Add Trust enumeration
+- Check for signing and binding LDAP port
