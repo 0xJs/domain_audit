@@ -827,7 +827,7 @@ if ($data -eq $null){
         $count = $data | Measure-Object | Select-Object -expand Count
 		Write-Host -ForegroundColor Red "[-] There are $count users in the Account Operators group that aren't Domain- or Enterprise Administrators"
         Write-Host "Writing to $file"
-		"Account Operators" | Out-File $file 
+		"Account Operators" | Out-File $file -Append
 		$data | Out-File $file -Append
 	}
 
@@ -839,7 +839,7 @@ if ($data -eq $null){
         $count = $data | Measure-Object | Select-Object -expand Count
 		Write-Host -ForegroundColor Red "[-] There are $count users in the Backup Operators group that aren't Domain- or Enterprise Administrators"
         Write-Host "Writing to $file"
-		"Backup Operators" | Out-File $file 
+		"Backup Operators" | Out-File $file -Append
 		$data | Out-File $file -Append
 	}
 
@@ -851,7 +851,7 @@ if ($data -eq $null){
         $count = $data | Measure-Object | Select-Object -expand Count
 		Write-Host -ForegroundColor Red "[-] There are $count users in the Print Operators group that aren't Domain- or Enterprise Administrators"
         Write-Host "Writing to $file"
-		"Print Operators" | Out-File $file 
+		"Print Operators" | Out-File $file -Append
 		$data | Out-File $file -Append
 	}
 	
@@ -863,7 +863,7 @@ if ($data -eq $null){
         $count = $data | Measure-Object | Select-Object -expand Count
 		Write-Host -ForegroundColor Red "[-] There are $count users in the DNS Admins group that aren't Domain- or Enterprise Administrators"
         Write-Host "Writing to $file"
-		"Print Operators" | Out-File $file 
+		"Print Operators" | Out-File $file -Append
 		$data | Out-File $file -Append
 	}
 
@@ -875,7 +875,7 @@ if ($data -eq $null){
         $count = $data | Measure-Object | Select-Object -expand Count
 		Write-Host -ForegroundColor Red "[-] There are $count users in the Schema Admins group that aren't Domain- or Enterprise Administrators"
         Write-Host "Writing to $file"
-		"Backup Operators" | Out-File $file 
+		"Backup Operators" | Out-File $file -Append
 		$data | Out-File $file -Append
 	}
 Write-Host " "
