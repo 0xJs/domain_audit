@@ -145,9 +145,9 @@ Write-Host " "
 # User enumeration
 Write-Host "---------- BASIC ENUMERATION ----------"
 Write-Host "[+] Saving a list of all users to $data_path\list_users.txt"
-Import-Csv $data_users | Select-Object samaccountname | Sort-Object -Property samaccountname | Out-File $data_path\list_users.txt
+Import-Csv $data_users | Select-Object -ExpandProperty samaccountname | Sort-Object -Property samaccountname | Out-File $data_path\list_users.txt
 Write-Host "[+] Saving a list of all enabled users to $data_path\list_users_enabled.txt"
-Import-Csv $data_users | Where-Object -Property useraccountcontrol -NotMatch "ACCOUNTDISABLE" | Select-Object samaccountname | Sort-Object -Property samaccountname | Out-File $data_path\list_users_enabled.txt
+Import-Csv $data_users | Where-Object -Property useraccountcontrol -NotMatch "ACCOUNTDISABLE" | Select-Object -ExpandProperty samaccountname | Sort-Object -Property samaccountname | Out-File $data_path\list_users_enabled.txt
 
 $file = "$data_path\list_admins.txt"
 Write-Host "[+] Saving a list of all Administrators to $file"
