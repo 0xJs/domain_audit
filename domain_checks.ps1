@@ -379,7 +379,7 @@ if ($data -eq $null){
 
 # Check if there are systems where LAPS is enabled on
 Write-Host "---Checking if LAPS is enabled on any computerobject---"
-$data = Get-DomainComputer -Domain $Domain -Server $Server -Credential $Creds | Where-Object -Property ms-Mcs-AdmPwdExpirationTime
+$data = Get-DomainComputer -Domain $Domain -Server $Server -Credential $Creds | Where-Object -Property ms-Mcs-AdmPwdExpirationTime | Select-Object samaccountname
 $file = "$data_path\laps_computers_enabled.txt"
 if ($data -eq $null){ 
 		Write-Host -ForegroundColor Red "[-] There are no systems where LAPS is enabled"
