@@ -584,7 +584,7 @@ Write-Host " "
 
 # Check PASSWD_NOTREQD users
 Write-Host "---Checking if there are users with the PASSWD_NOTREQD attribute---"	
-$data = Get-DomainUser -Domain $Domain -Server $Server -Credential $Creds | Where-Object -Property useraccountcontrol -Match "PASSWD_NOTREQD" | Select-Object samaccountname | Sort-Object -Property samaccountname
+$data = Get-DomainUser -Domain $Domain -Server $Server -Credential $Creds | Where-Object {$_.useraccountcontrol -Match "PASSWD_NOTREQD" -and $_.useraccountcontrol -notmatch "ACCOUNTDISABLE"} | Select-Object samaccountname | Sort-Object -Property samaccountname
 $file = "$findings_path\users_passwdnotreqd.txt"
 if ($data -eq $null){ 
 		Write-Host -ForegroundColor DarkGreen "[+] There are no users with the attribute PASSWD_NOTREQD"
