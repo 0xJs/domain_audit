@@ -788,7 +788,7 @@ Write-Host " "
 
 # Check if all privileged users are part of the protected users group
 Write-Host "---Checking if members of privileged groups are part of the protected users group---"
-$data = Get-DomainGroup -AdminCount -Domain $Domain -Server $Server -Credential $Creds | Get-DomainGroupMember -Domain $Domain -Server $Server -Credential $Creds | Get-DomainUser -Domain $Domain -Server $Server -Credential $Creds | Where-Object {!($_.memberof -match "Protected Users")} | Select-Object samaccountname | Sort-object samaccountname -Unique
+$data = Get-DomainGroup -AdminCount -Domain $Domain -Server $Server -Credential $Creds | Get-DomainGroupMember -Domain $Domain -Server $Server -Credential $Creds -Recurse | Get-DomainUser -Domain $Domain -Server $Server -Credential $Creds | Where-Object {!($_.memberof -match "Protected Users")} | Select-Object samaccountname | Sort-object samaccountname -Unique
 $file = "$findings_path\administrators_notin_protectedusersgroup.txt"
 if ($data -eq $null){ 
 		Write-Host -ForegroundColor DarkGreen "[+] There are no administrators that aren't in the protected users group"
@@ -803,7 +803,7 @@ Write-Host " "
 
 # Check if all privileged users have the flag "this account is sensitive and cannot be delegated"
 Write-Host "---Checking if members of privileged groups have the flag 'this account is sensitive and cannot be delegated'---"
-$data = Get-DomainGroup -AdminCount -Domain $Domain -Server $Server -Credential $Creds | Get-DomainGroupMember -Domain $Domain -Server $Server -Credential $Creds | Get-DomainUser -Domain $Domain -Server $Server -Credential $Creds -Allowdelegation | Where-Object {!($_.memberof -match "Protected Users")} | Select-Object samaccountname | Sort-object samaccountname -Unique
+$data = Get-DomainGroup -AdminCount -Domain $Domain -Server $Server -Credential $Creds | Get-DomainGroupMember -Domain $Domain -Server $Server -Credential $Creds -Recurse | Get-DomainUser -Domain $Domain -Server $Server -Credential $Creds -Allowdelegation | Where-Object {!($_.memberof -match "Protected Users")} | Select-Object samaccountname | Sort-object samaccountname -Unique
 $file = "$findings_path\administrators_delegation_flag.txt"
 if ($data -eq $null){ 
 		Write-Host -ForegroundColor DarkGreen "[+] There are no high privileged users without the flag 'this account is sensitive and cannot be delegated' that aren't in the Protected Users group"
