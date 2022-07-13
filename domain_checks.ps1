@@ -664,7 +664,7 @@ Write-Host " "
 # Check if there are users with DES encryption
 Write-Host "---Checking if there are users with DES encryption---"	
 $data = Import-Csv $data_users | Where-Object -Property useraccountcontrol -Match "USE_DES_KEY_ONLY" | Select-Object samaccountname | Sort-Object -Property samaccountname
-$file = "$findings_path\users_reversibleencryption.txt"
+$file = "$findings_path\users_desencryption.txt"
 if ($data -eq $null){ 
 		Write-Host -ForegroundColor DarkGreen "[+] There are no users with DES encryption"
     }
