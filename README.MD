@@ -14,11 +14,10 @@ $gpregisterpolicy_path = "$PSScriptRoot\import\GPRegistryPolicy\GPRegistryPolicy
 
 ## Running the tool
 - Start PowerShell as Administrator
-    - This is required to change the DNS server to DC IP and add domain to hosts file. Otherwise some checks will fail!
+    - This is required to change the DNS server to DC IP and add domain to hosts file. Otherwise some checks/executions will fail such as Impacket.
 ```
-.\domain_checks.ps1 -User <USER> -Password <PASSWORD> -Domain <DOMAIN> -Server <DC IP>
+Invoke-ADCheckAll -User <USER> -Password <PASSWORD> -Domain <DOMAIN> -Server <DC IP>
 ```
-- The script will start another powershell session with runas for the SQL checks.
 
 ## Output
 The tool will create a directory with the domain name and date on the desktop. In this directory there are three directories:
