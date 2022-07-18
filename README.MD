@@ -27,18 +27,20 @@ The tool will create a directory with the domain name and date on the desktop. I
 - ```Checks```, has output from checks that should be assessed manually to check ifs something to be reported.
 
 ## Checks
-The script will execute the following in order:
+Invoke-ADCheckAll will execute the following in order:
 - Collect basic data of AD objects and place them in `/data/` directory in `.csv` format
-- Collect data with bloodhound - Collectionmethods all, acl and sessions
+- Collect data with bloodhound - Collectionmethods all, acl and sessions in the background.
 - Create list of all (enabled) users, admin accounts, computers and groups in `/data/`
+- List amount of users, groups, computers, OU's, GPO's, Administrators
+- Check if the amount of admins is more then 5% (High amount of admins in the domain)
+- Enumerate domain trusts and trusts within forst
+- Check if AzureAD or Azure SSO is installed
 - Execute a runas in a new window for the SQL checks
   - Check for SQL instances in the domain
   - Check if current user has access to SQL instances
     - Check if the current user is sysadmin
     - Run invoke-sqlaudit
     - Check for database links as sysadmin
-- Check if AzureAD is installed
-- Check if SSO is configured
 - Check password policy configuration
     - Check for cleartextpasswords = 1
     - Check passwordlength
@@ -56,21 +58,21 @@ The script will execute the following in order:
 - Check if there are systems with LAPS installed
     - Check if there are systems where LAPS isn't installed on
 - If LAPS GPO found or LAPS computers found - Check if the current user can read LAPS passwords
-- Check if the amount of admins is more then 5% (High amount of admins in the domain)
 - Get all users with a description - Manually check for passwords or interesting information
 - Get all groups with a description - Manually check for passwords or interesting information
 - Get all computers with a description - Manually check for passwords or interesting information
+- Check if there are admins with a Spn
 - Check if there are users with a Spn 
     - Kerberoast users with a Spn
-- Check if there are admins with a Spn
 - Check for users with constrained delegation
 - Check for computers with constrained delegation
-- Check for computers with unconstrained delegation excep domain controllers
+- Check for computers with unconstrained delegation except domain controllers
+- Check for computers with resource based constrained delegation set
 - Check PASSWD_NOT_REQ attribute on users
-    - Check if users has empty password
-- Check DONT_EXPIRE_PASSWORD attribute on user
-- Check DONT_REQ_PREAUTH attribute on user
+    - Checks if users has empty password
+- Check DONT_REQ_PREAUTH attribute on users
     - AS-REP Roast users
+- Check DONT_EXPIRE_PASSWORD attribute on users
 - Check if there are users with reversible encryption
 - Check if there are users that use DES encryption
 - Check if there are domain admins with an old password
@@ -85,16 +87,23 @@ The script will execute the following in order:
 - Check if there are computerobjects part of a high privileged groups
 - Check who can add computerobjects to the domain
     - Check if this is the default authenticated users group
-- Check for domain admins with a session
-- Check if the current user is local admin on any machine
-- Check if there are passwords in the sysvol
-- Create a list of all shares the current user has access to
-- Look for interesting files on all shares
+- Check for accessible machines
 
 ## TO-DO
-- Rewrite the script and use the try function and check if expected output is correct for each command before executing checks
-- Add -Skip parameter for Bloodhound and checking for interesting shares.
+- A way to enumerate all shares, PowerView is doing weird. Crackmapexec is better but output is not in powershell and my crackmapexec is broken atm.
 - Add ADCS checks?
 - Add GPO checks
-- Add Trust enumeration
 - Check for signing and binding LDAP port
+- Expand Invoke-ADCheckDescriptions to check for the word pass and for duch ww and wachtwoord etc.
+- Add Unconstrained delegation for user?
+- Add checks for kerberos password policy?
+- Add function to skip dns change
+- Check if printspooler is enabled on DC's
+- Check if webdav is active on hosts
+- Add SQL query to retrieve databases of accessible SQL servers
+- Check what happens when domain join amount is not 10.
+- Check for admin count on users or groups which are no longer admin
+- Find a way to audit all ACL's.
+- Split invoke-sqlaudit into seperate checks
+- Function to generate a password spray list
+- Add functionality to start password spray?
