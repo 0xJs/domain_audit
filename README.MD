@@ -20,7 +20,7 @@ Invoke-ADCheckAll -User <USER> -Password <PASSWORD> -Domain <DOMAIN> -Server <DC
 ```
 
 ## Output
-The tool will create a directory with the domain name and date on the desktop. In this directory there are three directories:
+The tool will create a directory with the domain name and date on current directory or in the supplied location. In this directory there are three directories:
 - ```Data```, has .csv files from domain objects, bloodhound data and some lists of objects.
 - ```Findings```, has output from checks that could be something interesting or reported as a finding.
 - ```Checks```, has output from checks that should be assessed manually to check ifs something to be reported.
