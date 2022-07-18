@@ -91,7 +91,6 @@ Invoke-ADCheckAll will execute the following in order:
 ## TO-DO
 - A way to enumerate all shares, PowerView is doing weird. Crackmapexec is better but output is not in powershell and my crackmapexec is broken atm.
 - Add ADCS checks?
-- Add GPO checks
 - Check for signing and binding LDAP port
 - Expand Invoke-ADCheckDescriptions to check for the word pass and for duch ww and wachtwoord etc.
 - Add Unconstrained delegation for user?
