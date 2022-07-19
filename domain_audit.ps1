@@ -167,7 +167,7 @@ Start ADChecks with all modules
 
 		Invoke-ADCheckDomainJoin -Domain $Domain -Server $Server -User $User -Password $Password
 		
-		Invoke-ADCheckAccessibleComputers -Domain $Domain -Server $Server -User $User -Password $Password
+		Invoke-ADCheckReachableComputers -Domain $Domain -Server $Server -User $User -Password $Password
 		
 	}
 	elseif ($CredentialStatus -eq $false) {
@@ -2412,7 +2412,7 @@ Specifies the Password in combination with the username to use for the query.
 Specifies the path to use for the output directory, defaults to the current directory.
 
 .EXAMPLE
-Invoke-ADCheckPrivilegedObjects -Domain 'contoso.com' -Server 'dc1.contoso.com' -User '0xjs' -Password 'Password01!'
+Invoke-ADCheckDomainJoin -Domain 'contoso.com' -Server 'dc1.contoso.com' -User '0xjs' -Password 'Password01!'
 #>
 
 	#Parameters
@@ -2482,7 +2482,7 @@ Invoke-ADCheckPrivilegedObjects -Domain 'contoso.com' -Server 'dc1.contoso.com' 
 	
 }
 
-Function Invoke-ADCheckAccessibleComputers {
+Function Invoke-ADCheckReachableComputers {
 <#
 .SYNOPSIS
 Author: Jony Schats - 0xjs
@@ -2508,7 +2508,7 @@ Specifies the Password in combination with the username to use for the query.
 Specifies the path to use for the output directory, defaults to the current directory.
 
 .EXAMPLE
-Invoke-ADCheckPrivilegedObjects -Domain 'contoso.com' -Server 'dc1.contoso.com' -User '0xjs' -Password 'Password01!'
+Invoke-ADCheckReachableComputers -Domain 'contoso.com' -Server 'dc1.contoso.com' -User '0xjs' -Password 'Password01!'
 #>
 
 	#Parameters
