@@ -2490,7 +2490,7 @@ Required Dependencies: None
 Optional Dependencies: None
 
 .DESCRIPTION
-Check who can join computers to the domain. By default the "Authenticated users group" is able to join computers to the domain.
+Check which computers are reachable from the current machine with Get-NetConnection (ping).
 
 .PARAMETER Domain
 Specifies the domain to use for the query.
