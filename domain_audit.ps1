@@ -2371,7 +2371,7 @@ Invoke-ADCheckPrivilegedObjects -Domain 'contoso.com' -Server 'dc1.contoso.com' 
 	Write-Host " "
 	
 	# Check if there is a computer part of a high privileged group
-	Write-Host "---Checking if there is a computerobject part of a high privileged group---"
+	Write-Host "---Checking if there are computerobjects part ofhigh privileged groups---"
 	$data = Get-DomainGroup -Domain $Domain -Server $Server -Credential $Creds -AdminCount | Get-DomainGroupMember -Domain $Domain -Server $Server -Credential $Creds -Recurse -ErrorAction Silentlycontinue -WarningAction Silentlycontinue | Where-Object -Property MemberObjectClass -Match computer | Select-Object MemberName
 	$file = "$findings_path\computers_part_of_highprivilegedgroups.txt"
 	if ($data){ 
@@ -2549,17 +2549,17 @@ Invoke-ADCheckPrivilegedObjects -Domain 'contoso.com' -Server 'dc1.contoso.com' 
 	}	
 	
 	# Check if accessible computers
-	Write-Host "---Checking which machines are accessible from current machine through ping	---"
+	Write-Host "---Checking which machines are reachable from current machine through ping---"
 	$data = Get-DomainComputer -Domain 'amsterdam.bank.local' -Server '10.0.0.3' -Credential $Creds -Ping | Select-Object dnshostname
 	$file = "$data_path\computers_accessible.txt"
 	if ($data){ 
 			$count = $data | Measure-Object | Select-Object -expand Count
-			Write-Host -ForegroundColor DarkGreen "[+] There are $count computers which are accessible"
+			Write-Host -ForegroundColor DarkGreen "[+] There are $count computers which are reachable"
 			Write-Host "[W] Writing to $file"
 			$data | Out-File $file
 		}
 		else {
-			Write-Host -ForegroundColor DarkGreen "[+] There are no accessible computers"
+			Write-Host -ForegroundColor DarkGreen "[+] There are no reachable computers, probably something wrong with DNS"
 		}
 	Write-Host " "
 	
