@@ -167,9 +167,7 @@ Start ADChecks with all modules
 
 		Invoke-ADCheckDomainJoin -Domain $Domain -Server $Server -User $User -Password $Password
 		
-		#Invoke-ADCheckReachableComputers -Domain $Domain -Server $Server -User $User -Password $Password
-		
-		Invoke-ADCheckSMB -Domain $Domain -Server $Server -User $User -Password $Password
+		Invoke-ADCheckReachableComputers -Domain $Domain -Server $Server -User $User -Password $Password
 		
 	}
 	elseif ($CredentialStatus -eq $false) {
