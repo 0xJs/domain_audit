@@ -167,9 +167,7 @@ Start ADChecks with all modules
 
 		Invoke-ADCheckDomainJoin -Domain $Domain -Server $Server -User $User -Password $Password
 		
-		#Invoke-ADCheckReachableComputers -Domain $Domain -Server $Server -User $User -Password $Password
-		
-		Invoke-ADCheckSMB -Domain $Domain -Server $Server -User $User -Password $Password
+		Invoke-ADCheckReachableComputers -Domain $Domain -Server $Server -User $User -Password $Password
 		
 	}
 	elseif ($CredentialStatus -eq $false) {
@@ -759,11 +757,7 @@ Enumerate trusts for contoso.com and save output in C:\temp\
 		}
 	}
 	else {
-<<<<<<< HEAD
 		Write-Host -ForegroundColor DarkGreen "[+] The domain $Domain doesn't trust any domains"
-=======
-		Write-Host -ForegroundColor Green "[+] The domain $Domain doesn't trust any domains"
->>>>>>> 0d95d24dc8d5327abe690224fa298f3763a4b768
 		Write-Host " "
 	}
 }
@@ -1393,13 +1387,10 @@ Invoke-ADCheckLAPS -Domain 'contoso.com' -Server 'dc1.contoso.com' -User '0xjs' 
 				Write-Host "[W] Writing to $file"
 				$data | Out-File $file
 			}
-<<<<<<< HEAD
-			Write-Host " "
-=======
 			else {
 				Write-Host -ForegroundColor DarkGreen "[+] There are no Windows systems where LAPS isn't enabled"
 			}
->>>>>>> 0d95d24dc8d5327abe690224fa298f3763a4b768
+			Write-Host " "
 		}
 		else {
 			Write-Host -ForegroundColor Red "[-] There are no systems where LAPS is enabled"
@@ -1924,7 +1915,6 @@ Invoke-ADCheckUserAttributes -Domain 'contoso.com' -Server 'dc1.contoso.com' -Us
 		}
 	else {
 		Write-Host -ForegroundColor DarkGreen "[+] There are no users with the attribute PASSWD_NOTREQD"
-		Write-Host " "
 	}
 	Write-Host " "
 		
