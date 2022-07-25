@@ -758,6 +758,7 @@ Enumerate trusts for contoso.com and save output in C:\temp\
 	}
 	else {
 		Write-Host -ForegroundColor Green "[+] The domain $Domain doesn't trust any domains"
+		Write-Host " "
 	}
 }
 
