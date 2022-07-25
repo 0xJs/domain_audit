@@ -1485,7 +1485,7 @@ Invoke-ADCheckDescriptions -Domain 'contoso.com' -Server 'dc1.contoso.com' -User
 	
 	# Usernames with description, possible passwords
 	Write-Host "---Checking description field for passwords---"
-	$data = Get-DomainUser -Domain $Domain -Server $Server -Credential $Creds | Where-Object description | Select-Object samaccountname -ExpandProperty description | Sort-Object description -Descending
+	$data = Get-DomainUser -Domain $Domain -Server $Server -Credential $Creds | Where-Object description | Select-Object samaccountname, description | Sort-Object description -Descending
 	$file = "$checks_path\description_users.txt"
 	if ($data){ 
 			$count = $data | Measure-Object | Select-Object -expand Count
@@ -1500,7 +1500,7 @@ Invoke-ADCheckDescriptions -Domain 'contoso.com' -Server 'dc1.contoso.com' -User
 		
 	# Groups with description, possible interesting information
 	Write-Host "---Checking groups description field for interesting information---"
-	$data = Get-DomainGroup -Domain $Domain -Server $Server -Credential $Creds | Where-Object description | Select-Object samaccountname -ExpandProperty description | Sort-Object description -Descending
+	$data = Get-DomainGroup -Domain $Domain -Server $Server -Credential $Creds | Where-Object description | Select-Object samaccountname, description | Sort-Object description -Descending
 	$file = "$checks_path\description_groups.txt"
 	if ($data){ 
 			$count = $data | Measure-Object | Select-Object -expand Count
@@ -1515,7 +1515,7 @@ Invoke-ADCheckDescriptions -Domain 'contoso.com' -Server 'dc1.contoso.com' -User
 	
 	# Computers with description, possible interesting information
 	Write-Host "---Checking computerobjects description field for interesting information---"
-	$data = Get-DomainComputer -Domain $Domain -Server $Server -Credential $Creds | Where-Object description | Select-Object samaccountname -ExpandProperty description | Sort-Object description -Descending
+	$data = Get-DomainComputer -Domain $Domain -Server $Server -Credential $Creds | Where-Object description | Select-Object samaccountname, description | Sort-Object description -Descending
 	$file = "$checks_path\description_computers.txt"
 	if ($data){ 
 			$count = $data | Measure-Object | Select-Object -expand Count
