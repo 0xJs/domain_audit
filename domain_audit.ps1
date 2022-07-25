@@ -167,7 +167,9 @@ Start ADChecks with all modules
 
 		Invoke-ADCheckDomainJoin -Domain $Domain -Server $Server -User $User -Password $Password
 		
-		Invoke-ADCheckReachableComputers -Domain $Domain -Server $Server -User $User -Password $Password
+		#Invoke-ADCheckReachableComputers -Domain $Domain -Server $Server -User $User -Password $Password
+		
+		Invoke-ADCheckSMB -Domain $Domain -Server $Server -User $User -Password $Password
 		
 	}
 	elseif ($CredentialStatus -eq $false) {
@@ -558,7 +560,7 @@ Execute all basic enumeration steps but skip BloudHound
 	
 	if (-Not $PSBoundParameters['SkipBloodHound']) {
 		Write-Host "[+] Gathering BloodHound data all, session and ACL in seperate PowerShell session in background"
-		Invoke-Expression "cmd /c start powershell -WindowStyle hidden -Command {Import-Module $script:BloodHound_Path; Invoke-BloodHound -CollectionMethod all -SearchForest -Domain $Domain -DomainController $Server -LdapUsername $User -LdapPassword $Password -OutputDirectory $Data_Path; Invoke-BloodHound -CollectionMethod session -Domain $Domain -DomainController $Server -LdapUsername $User -LdapPassword $Password -OutputDirectory $Data_Path; Invoke-BloodHound -CollectionMethod acl -Domain $Domain -DomainController $Server -LdapUsername $User -LdapPassword $Password -OutputDirectory $Data_Path}"
+		Invoke-Expression "cmd /c start powershell -WindowStyle hidden -Command {Import-Module $script:BloodHound_Path; Invoke-BloodHound -CollectionMethod all -Domain $Domain -DomainController $Server -LdapUsername $User -LdapPassword $Password -OutputDirectory $Data_Path; Invoke-BloodHound -CollectionMethod session -Domain $Domain -DomainController $Server -LdapUsername $User -LdapPassword $Password -OutputDirectory $Data_Path; Invoke-BloodHound -CollectionMethod acl -Domain $Domain -DomainController $Server -LdapUsername $User -LdapPassword $Password -OutputDirectory $Data_Path}"
 	}
 	
 	Write-Verbose "[+] Gathering data of all Users"
@@ -757,7 +759,8 @@ Enumerate trusts for contoso.com and save output in C:\temp\
 		}
 	}
 	else {
-		Write-Host -ForegroundColor Green "[+] The domain $Domain doesn't trust any domains"
+		Write-Host -ForegroundColor DarkGreen "[+] The domain $Domain doesn't trust any domains"
+		Write-Host " "
 	}
 }
 
@@ -847,8 +850,6 @@ Start all SQL checks but skip prompt asking if the process is running as the dom
 		$confirmation = Read-Host "This command needs to be executed from a runas prompt or running in domain context, is it? y/n"
 	}
 	
-	
-	
 	if ($confirmation -eq 'y') {
 		"---------- EXECUTING SQL CHECKS ----------"
 		
@@ -929,7 +930,7 @@ Start all SQL checks but skip prompt asking if the process is running as the dom
 			
 			}
 			else {
-			Write-Host -ForegroundColor Green "[+] The current user can't access any MSSQL instances"	
+			Write-Host -ForegroundColor DarkGreen "[+] The current user can't access any MSSQL instances"	
 			}
 		}
 		else {
@@ -1391,6 +1392,7 @@ Invoke-ADCheckLAPS -Domain 'contoso.com' -Server 'dc1.contoso.com' -User '0xjs' 
 				Write-Host "[W] Writing to $file"
 				$data | Out-File $file
 			}
+			Write-Host " "
 		}
 		else {
 			Write-Host -ForegroundColor Red "[-] There are no systems where LAPS is enabled"
@@ -1485,7 +1487,7 @@ Invoke-ADCheckDescriptions -Domain 'contoso.com' -Server 'dc1.contoso.com' -User
 	
 	# Usernames with description, possible passwords
 	Write-Host "---Checking description field for passwords---"
-	$data = Get-DomainUser -Domain $Domain -Server $Server -Credential $Creds | Where-Object description | Select-Object samaccountname -ExpandProperty description | Sort-Object description -Descending
+	$data = Get-DomainUser -Domain $Domain -Server $Server -Credential $Creds | Where-Object description | Select-Object samaccountname, description | Sort-Object description -Descending
 	$file = "$checks_path\description_users.txt"
 	if ($data){ 
 			$count = $data | Measure-Object | Select-Object -expand Count
@@ -1500,7 +1502,7 @@ Invoke-ADCheckDescriptions -Domain 'contoso.com' -Server 'dc1.contoso.com' -User
 		
 	# Groups with description, possible interesting information
 	Write-Host "---Checking groups description field for interesting information---"
-	$data = Get-DomainGroup -Domain $Domain -Server $Server -Credential $Creds | Where-Object description | Select-Object samaccountname -ExpandProperty description | Sort-Object description -Descending
+	$data = Get-DomainGroup -Domain $Domain -Server $Server -Credential $Creds | Where-Object description | Select-Object samaccountname, description | Sort-Object description -Descending
 	$file = "$checks_path\description_groups.txt"
 	if ($data){ 
 			$count = $data | Measure-Object | Select-Object -expand Count
@@ -1515,7 +1517,7 @@ Invoke-ADCheckDescriptions -Domain 'contoso.com' -Server 'dc1.contoso.com' -User
 	
 	# Computers with description, possible interesting information
 	Write-Host "---Checking computerobjects description field for interesting information---"
-	$data = Get-DomainComputer -Domain $Domain -Server $Server -Credential $Creds | Where-Object description | Select-Object samaccountname -ExpandProperty description | Sort-Object description -Descending
+	$data = Get-DomainComputer -Domain $Domain -Server $Server -Credential $Creds | Where-Object description | Select-Object samaccountname, description | Sort-Object description -Descending
 	$file = "$checks_path\description_computers.txt"
 	if ($data){ 
 			$count = $data | Measure-Object | Select-Object -expand Count
@@ -1618,7 +1620,7 @@ Does only enumeration and skips the execution of impacket
 			$data | Out-File $file
 			$data = Get-Content $file
 			$data = $data | Sort-Object -Unique 
-			$data = $data -replace 'samaccountname', '' -replace '--------------', '' #remove strings
+			$data = $data -replace 'samaccountname', '' -replace '--------------------', '' -replace '--------------', '' -replace 'serviceprincipalname', '' #remove strings
 			$data = $data.Trim() | ? {$_.trim() -ne "" } #Remove spaces and white lines
 			$count = $data | Measure-Object | Select-Object -expand Count
 			Write-Host -ForegroundColor Red "[-] There are $count kerberoastable administrators"
@@ -1753,7 +1755,7 @@ Invoke-ADCheckDelegation -Domain 'contoso.com' -Server 'dc1.contoso.com' -User '
 	Write-Host "---Checking unconstrained delegation computerobjects, excluding domain-controllers---"	
 	$data = Get-DomainComputer -Unconstrained -Domain $Domain -Server $Server -Credential $Creds | Where-Object -Property useraccountcontrol -NotMatch "SERVER_TRUST_ACCOUNT" | Select-Object samaccountname | Sort-Object -Property samaccountname
 	$file = "$findings_path\computers_unconstrained_delegation.txt"
-	if ($data -eq $null){ 
+	if ($data){ 
 			$count = $data | Measure-Object | Select-Object -expand Count
 			Write-Host -ForegroundColor Red "[-] There are $count computerobjects that have unconstrained delegation enabled"
 			Write-Host "[W] Writing to $file"
@@ -1916,7 +1918,7 @@ Invoke-ADCheckUserAttributes -Domain 'contoso.com' -Server 'dc1.contoso.com' -Us
 	else {
 		Write-Host -ForegroundColor DarkGreen "[+] There are no users with the attribute PASSWD_NOTREQD"
 	}
-	
+	Write-Host " "
 		
 	# Check DONT_EXPIRE_PASSWORD users
 	Write-Host "---Checking if there are users with the DONT_EXPIRE_PASSWORD attribute---"	
@@ -2548,18 +2550,24 @@ Invoke-ADCheckReachableComputers -Domain 'contoso.com' -Server 'dc1.contoso.com'
 		Create-CredentialObject -User $User -Password $Password
 	}	
 	
-	# Check if accessible computers
+	# Check if there are reachable computers
 	Write-Host "---Checking which machines are reachable from current machine through ping---"
-	$data = Get-DomainComputer -Domain 'amsterdam.bank.local' -Server '10.0.0.3' -Credential $Creds -Ping | Select-Object dnshostname
+	$data = Get-DomainComputer -Domain $Domain -Server $Server -Credential $Creds -Ping -ErrorAction silentlycontinue | Where-Object dnshostname | Select-Object dnshostname | Sort-Object
 	$file = "$data_path\computers_accessible.txt"
 	if ($data){ 
 			$count = $data | Measure-Object | Select-Object -expand Count
 			Write-Host -ForegroundColor DarkGreen "[+] There are $count computers which are reachable"
 			Write-Host "[W] Writing to $file"
-			$data | Out-File $file
+			$data | Out-File -Encoding utf8 $file
+			$data = Get-Content $file
+			$data = $data | Sort-Object -Unique 
+			$data = $data -replace 'dnshostname', '' -replace '-----------', '' #remove strings
+			$data = $data.Trim() | ? {$_.trim() -ne "" } #Remove spaces and white lines
+			$data = $data | Sort-Object -Unique
+			$data | Out-File -Encoding utf8 $file
 		}
 		else {
-			Write-Host -ForegroundColor DarkGreen "[+] There are no reachable computers, probably something wrong with DNS"
+			Write-Host -ForegroundColor Red "[+] There are no reachable computers, probably something wrong with DNS"
 		}
 	Write-Host " "
 	
