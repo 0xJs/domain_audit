@@ -605,7 +605,7 @@ Execute all basic enumeration steps but skip BloudHound
 	$data | Out-File $file
 	$data = Get-Content $file
 	$data = $data | Sort-Object -Unique 
-	$data = $data -replace 'samaccountname', '' -replace '--------------', '' #remove strings
+	$data = $data -replace 'samaccountname', '' -replace '-', '' -replace 'serviceprincipalname', '' #remove strings
 	$data = $data.Trim() | ? {$_.trim() -ne "" } #Remove spaces and white lines
 	$data = $data | Sort-Object -Unique
 	$data | Out-File $file
@@ -759,7 +759,11 @@ Enumerate trusts for contoso.com and save output in C:\temp\
 		}
 	}
 	else {
+<<<<<<< HEAD
 		Write-Host -ForegroundColor DarkGreen "[+] The domain $Domain doesn't trust any domains"
+=======
+		Write-Host -ForegroundColor Green "[+] The domain $Domain doesn't trust any domains"
+>>>>>>> 0d95d24dc8d5327abe690224fa298f3763a4b768
 		Write-Host " "
 	}
 }
@@ -901,14 +905,14 @@ Start all SQL checks but skip prompt asking if the process is running as the dom
 				Write-Host "---Checking database links for sysadmin security context---"	
 				$data = $results | Where-Object -Property status -Like Accessible | Get-SQLServerLinkCrawl | Where-Object -Property  sysadmin -Match 1
 				$file = "$Findings_Path\SQLserver_sysadmin_on_links.txt"
-				if ($data -eq $null){ 
-						Write-Host -ForegroundColor DarkGreen "[+] There are no links which run under the security context of a sysadmin user"
-					}
-					else {
+				if ($data){ 
 						$count = $data | Measure-Object | Select-Object -expand Count
 						Write-Host -ForegroundColor Red "[-] There are $count links which run under the security context of a sysadmin user"
 						Write-Host "[W] Writing to $file"
 						$data | Out-File $file
+					}
+					else {
+						Write-Host -ForegroundColor DarkGreen "[+] There are no links which run under the security context of a sysadmin user"
 					}
 				Write-Host " "
 				
@@ -917,14 +921,14 @@ Start all SQL checks but skip prompt asking if the process is running as the dom
 				Write-Host "This might take a while"
 				$data = $results | Where-Object -Property status -Like Accessible | Invoke-SQLAudit -ErrorAction silentlycontinue
 				$file = "$Findings_Path\SQLserver_sqlaudit.txt"
-				if ($data -eq $null){ 
-						Write-Host -ForegroundColor DarkGreen "[+] Invoke-SQLAudit didn't found anything"
-					}
-					else {
+				if ($data){ 
 						$count = $data | Measure-Object | Select-Object -expand Count
 						Write-Host -ForegroundColor Red "[-] Invoke-SQLAudit found $count issues"
 						Write-Host "[W] Writing to $file"
 						$data | Out-File $file
+					}
+					else {
+						Write-Host -ForegroundColor DarkGreen "[+] Invoke-SQLAudit didn't found anything"
 					}
 				Write-Host " "
 			
@@ -1383,16 +1387,19 @@ Invoke-ADCheckLAPS -Domain 'contoso.com' -Server 'dc1.contoso.com' -User '0xjs' 
 			Write-Host "---Checking Windows computerobjects where LAPS isn't enabled---"
 			$data = Get-DomainComputer -Domain $Domain -Server $Server -Credential $Creds | Where-Object {$_."ms-Mcs-AdmPwdExpirationTime" -Like $null -and $_.Operatingsystem -match "Windows" } | Select-Object samaccountname, lastlogon, whenchanged | Sort-Object whenchanged -Descending
 			$file = "$data_path\laps_computers_disabled.txt"
-			if ($data -eq $null){ 
-				Write-Host -ForegroundColor DarkGreen "[+] There are no Windows systems where LAPS isn't enabled"
-			}
-			else {
+			if ($data){ 
 				$count = $data | Measure-Object | Select-Object -expand Count
 				Write-Host -ForegroundColor Red "[-] There are $count Windows systems where LAPS isn't enabled"
 				Write-Host "[W] Writing to $file"
 				$data | Out-File $file
 			}
+<<<<<<< HEAD
 			Write-Host " "
+=======
+			else {
+				Write-Host -ForegroundColor DarkGreen "[+] There are no Windows systems where LAPS isn't enabled"
+			}
+>>>>>>> 0d95d24dc8d5327abe690224fa298f3763a4b768
 		}
 		else {
 			Write-Host -ForegroundColor Red "[-] There are no systems where LAPS is enabled"
@@ -1406,14 +1413,14 @@ Invoke-ADCheckLAPS -Domain 'contoso.com' -Server 'dc1.contoso.com' -User '0xjs' 
 			# Check if current user can read LAPS passwords
 			Write-Host "---Checking if current user can read LAPS passwords---"
 			$data = Get-DomainComputer -Domain $Domain -Server $Server -Credential $Creds | Where-Object -Property ms-mcs-admpwd | Select-Object samaccountname, ms-mcs-admpwd
-			if ($data -eq $null){ 
-					Write-Host -ForegroundColor DarkGreen "[-] The current user couldn't read any LAPS passwords!"
-				}
-				else {
+			if ($data){ 
 					Write-Host -ForegroundColor Red "[-] The current user could read LAPS passwords"
 					$file = "$findings_path\laps_passwords.txt"
 					Write-Host "[W] Writing to $file"
 					$data | Out-File $file
+				}
+				else {
+					Write-Host -ForegroundColor DarkGreen "[-] The current user couldn't read any LAPS passwords!"
 				}
 		}
 	Write-Host " "
@@ -1917,6 +1924,7 @@ Invoke-ADCheckUserAttributes -Domain 'contoso.com' -Server 'dc1.contoso.com' -Us
 		}
 	else {
 		Write-Host -ForegroundColor DarkGreen "[+] There are no users with the attribute PASSWD_NOTREQD"
+		Write-Host " "
 	}
 	Write-Host " "
 		
