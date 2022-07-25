@@ -603,7 +603,7 @@ Execute all basic enumeration steps but skip BloudHound
 	$data | Out-File $file
 	$data = Get-Content $file
 	$data = $data | Sort-Object -Unique 
-	$data = $data -replace 'samaccountname', '' -replace '--------------', '' #remove strings
+	$data = $data -replace 'samaccountname', '' -replace '-', '' -replace 'serviceprincipalname', '' #remove strings
 	$data = $data.Trim() | ? {$_.trim() -ne "" } #Remove spaces and white lines
 	$data = $data | Sort-Object -Unique
 	$data | Out-File $file
