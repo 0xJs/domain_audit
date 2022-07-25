@@ -1753,7 +1753,7 @@ Invoke-ADCheckDelegation -Domain 'contoso.com' -Server 'dc1.contoso.com' -User '
 	Write-Host "---Checking unconstrained delegation computerobjects, excluding domain-controllers---"	
 	$data = Get-DomainComputer -Unconstrained -Domain $Domain -Server $Server -Credential $Creds | Where-Object -Property useraccountcontrol -NotMatch "SERVER_TRUST_ACCOUNT" | Select-Object samaccountname | Sort-Object -Property samaccountname
 	$file = "$findings_path\computers_unconstrained_delegation.txt"
-	if ($data -eq $null){ 
+	if ($data){ 
 			$count = $data | Measure-Object | Select-Object -expand Count
 			Write-Host -ForegroundColor Red "[-] There are $count computerobjects that have unconstrained delegation enabled"
 			Write-Host "[W] Writing to $file"
