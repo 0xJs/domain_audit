@@ -91,6 +91,7 @@ Invoke-ADCheckAll will execute the following in order:
 
 ## TO-DO
 - A way to enumerate all shares, PowerView is doing weird. Crackmapexec is better but output is not in powershell and my crackmapexec is broken atm.
+- Check for sysvol and netlogon passwords
 - Fix dependancy options
 - Add ADCS checks, but need to set this up in a LAB environment first.
 - Check for signing and binding LDAPS port on DC's.
