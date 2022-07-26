@@ -2470,7 +2470,13 @@ Invoke-ADCheckDomainJoin -Domain 'contoso.com' -Server 'dc1.contoso.com' -User '
 	$file = "$findings_path\authenticated_users_can_join_domain.txt"
 	if ($data.name -eq "S-1-5-11"){ 
 			$data2 = Get-DomainObject -Credential $creds -Domain $Domain -Server $Server | Where-Object ms-ds-machineaccountquota
-			$count = $data2."ms-ds-machineaccountquota"
+			if ($data2) {
+				$count = $data2."ms-ds-machineaccountquota"
+			}
+			else {
+				$count = 0
+				Write-Host "[-] ms-ds-machineaccountquota value not found, probaby unset. Setting it to 0 (unlimited)"
+			}
 			Write-Host -ForegroundColor Red "[-] The authenticated users group(S-1-5-11) can add $count computerobjects to the domain"
 			Write-Host "[W] Writing to $file"
 			$data | Out-File $file
