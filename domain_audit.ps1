@@ -586,6 +586,7 @@ Execute all basic enumeration steps but skip BloudHound
 	$computercount = Import-Csv $Data_Path\data_computers.csv | Measure-Object | Select-Object -expand Count
 	$gpocount = Import-Csv $Data_Path\data_gpo.csv | Measure-Object | Select-Object -expand Count
 	$oucount = Import-Csv $Data_Path\data_ou.csv | Measure-Object | Select-Object -expand Count
+	$dccount = Import-Csv $Data_Path\data_domaincontrollers.csv | Measure-Object | Select-Object -expand Count
 	
 	Write-Host " "
 	
@@ -631,6 +632,7 @@ Execute all basic enumeration steps but skip BloudHound
 	Write-Host "- $oucount OU's"
 	Write-Host "- $gpocount GPO's"
 	Write-Host "- $admincount Administrators"
+	Write-Host "- $dccount Domain Controllers"
 	Write-Host " "
 	
 	# Check if the amount of admins is more then 5% of all users
@@ -1492,6 +1494,16 @@ Invoke-ADCheckDescriptions -Domain 'contoso.com' -Server 'dc1.contoso.com' -User
 			Write-Host -ForegroundColor Yellow "[-] There are $count users that have a description, please manually check for passwords!"
 			Write-Host "[W] Writing to $file"
 			$data | Out-File $file
+			
+			$data2 = $data | Where-Object {$_.description -Match "pw" -or $_.description -match "pass" -or $_.description -match "ww" -or $_.description -match "wachtwoord"}
+			if ($data2) {
+				Write-Host " "
+				$file = "$checks_path\description_users_passstrings.txt"
+				$count = $data2 | Measure-Object | Select-Object -expand Count
+				Write-Host -ForegroundColor Yellow "[-] There are $count users that have a description with the string pw, pass, ww or wachtwoord, please manually check for passwords!"
+				Write-Host "[W] Writing to $file"
+				$data2 | Out-File $file
+			}
 		}
 		else {
 			Write-Host -ForegroundColor DarkGreen "[+] There where no users with a description"
@@ -2570,3 +2582,5 @@ Invoke-ADCheckReachableComputers -Domain 'contoso.com' -Server 'dc1.contoso.com'
 	Write-Host " "
 	
 }
+
+
