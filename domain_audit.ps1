@@ -1761,21 +1761,6 @@ Invoke-ADCheckDelegation -Domain 'contoso.com' -Server 'dc1.contoso.com' -User '
 		Create-CredentialObject -User $User -Password $Password
 	}	
 
-	# Check for unconstrained delegation
-	Write-Host "---Checking unconstrained delegation computerobjects, excluding domain-controllers---"	
-	$data = Get-DomainComputer -Unconstrained -Domain $Domain -Server $Server -Credential $Creds | Where-Object -Property useraccountcontrol -NotMatch "SERVER_TRUST_ACCOUNT" | Select-Object samaccountname | Sort-Object -Property samaccountname
-	$file = "$findings_path\computers_unconstrained_delegation.txt"
-	if ($data){ 
-			$count = $data | Measure-Object | Select-Object -expand Count
-			Write-Host -ForegroundColor Red "[-] There are $count computerobjects that have unconstrained delegation enabled"
-			Write-Host "[W] Writing to $file"
-			$data | Out-File $file
-		}
-		else {
-			Write-Host -ForegroundColor DarkGreen "[+] There are no computerobjects with unconstrained delegation"
-		}
-	Write-Host " "
-	
 	# Check for constrained delegation users
 	Write-Host "---Checking constrained delegation users---"
 	$data = Get-DomainUser -TrustedToAuth -Domain $Domain -Server $Server -Credential $Creds | Select-Object samaccountname, msds-allowedtodelegateto | Sort-Object -Property samaccountname
@@ -1791,6 +1776,21 @@ Invoke-ADCheckDelegation -Domain 'contoso.com' -Server 'dc1.contoso.com' -User '
 		}
 	Write-Host " "
 	
+	# Check for unconstrained delegation user
+	Write-Host "---Checking unconstrained delegation computerobjects, excluding domain-controllers---"	
+	$data = Get-DomainUser -Domain $Domain -Server $Server -Credential $Creds | Where-Object -Property useraccountcontrol -Match TRUSTED_FOR_DELEGATION | Select-Object samaccountname | Sort-Object -Property samaccountname
+	$file = "$findings_path\users_unconstrained_delegation.txt"
+	if ($data){ 
+			$count = $data | Measure-Object | Select-Object -expand Count
+			Write-Host -ForegroundColor Red "[-] There are $count users that have unconstrained delegation enabled"
+			Write-Host "[W] Writing to $file"
+			$data | Out-File $file
+		}
+		else {
+			Write-Host -ForegroundColor DarkGreen "[+] There are no users with unconstrained delegation"
+		}
+	Write-Host " "
+	
 	# Check for constrained delegation computerobjects
 	Write-Host "---Checking constrained delegation computerobjects---"	
 	$data = Get-DomainComputer -TrustedToAuth -Domain $Domain -Server $Server -Credential $Creds | Select-Object samaccountname, msds-allowedtodelegateto | Sort-Object -Property samaccountname
@@ -1803,6 +1803,21 @@ Invoke-ADCheckDelegation -Domain 'contoso.com' -Server 'dc1.contoso.com' -User '
 		}
 		else {
 			Write-Host -ForegroundColor DarkGreen "[+] There are no computerobjects with constrained delegation"
+		}
+	Write-Host " "
+	
+	# Check for unconstrained delegation computeraccount
+	Write-Host "---Checking unconstrained delegation computerobjects, excluding domain-controllers---"	
+	$data = Get-DomainComputer -Unconstrained -Domain $Domain -Server $Server -Credential $Creds | Where-Object -Property useraccountcontrol -NotMatch "SERVER_TRUST_ACCOUNT" | Select-Object samaccountname | Sort-Object -Property samaccountname
+	$file = "$findings_path\computers_unconstrained_delegation.txt"
+	if ($data){ 
+			$count = $data | Measure-Object | Select-Object -expand Count
+			Write-Host -ForegroundColor Red "[-] There are $count computerobjects that have unconstrained delegation enabled"
+			Write-Host "[W] Writing to $file"
+			$data | Out-File $file
+		}
+		else {
+			Write-Host -ForegroundColor DarkGreen "[+] There are no computerobjects with unconstrained delegation"
 		}
 	Write-Host " "
 	
