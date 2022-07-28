@@ -12,7 +12,7 @@ $sqlchecks_path = "$PSScriptRoot\sql_checks.ps1"
 $gpregisterpolicy_path = "$PSScriptRoot\import\GPRegistryPolicy\GPRegistryPolicy.psd1"
 ```
 
-## Running the tool
+## Running the tool and execute all checks
 - Start PowerShell as Administrator
     - This is required to change the DNS server to DC IP and add domain to hosts file. Otherwise some checks/executions will fail such as Impacket.
 ```
@@ -92,16 +92,16 @@ Invoke-ADCheckAll will execute the following in order:
 ## TO-DO
 - A way to enumerate all shares, PowerView is doing weird. Crackmapexec is better but output is not in powershell and my crackmapexec is broken atm.
 - Check for sysvol and netlogon passwords
-
-- Check for signing and binding LDAPS port on DC's.
-- Add Unconstrained delegation for user?
+- Checks for exchange server (mailsniper)
+- Check for signing and binding LDAPS port on DC's. (Ldaprelayscan but its kinda broken)
+- Add Unconstrained delegation for user check
 - Add checks for kerberos password policy?
 - Check if printspooler is enabled on DC's
 - Check if webdav is active on reachable computers
 - Check for admin count on users or groups which are no longer admin
 - Add SQL query to retrieve databases of accessible SQL servers
 
-- Find a way to audit all ACL's.
+- Find a way to audit all ACL's (Invoke-ACLScanner doesnt work well from non domain joined perspective)
 - Add ADCS checks, but need to set this up in a LAB environment first.
 - Split invoke-sqlaudit into seperate checks
 - Function to generate a password spray list
