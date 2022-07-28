@@ -2465,10 +2465,10 @@ Invoke-ADCheckDomainJoin -Domain 'contoso.com' -Server 'dc1.contoso.com' -User '
 	}	
 
 	# Check who can add computerobjects to the domain
-	#Write-Host "---Checking who can add computerobjects to the domain---"
-	#$data = (Get-DomainPolicy -Policy DC -Domain $Domain -Server $Server -Credential $Creds).PrivilegeRights.SeMachineAccountPrivilege.Trim("*") | Get-DomainObject -Domain $Domain -Server $Server -Credential $Creds | Select-Object name
-	#$file = "$findings_path\authenticated_users_can_join_domain.txt"
-	#if ($data.name -eq "S-1-5-11"){ 
+	Write-Host "---Checking who can add computerobjects to the domain---"
+	$data = (Get-DomainPolicy -Policy DC -Domain $Domain -Server $Server -Credential $Creds).PrivilegeRights.SeMachineAccountPrivilege.Trim("*") | Get-DomainObject -Domain $Domain -Server $Server -Credential $Creds | Select-Object name
+	$file = "$findings_path\authenticated_users_can_join_domain.txt"
+	if ($data.name -eq "S-1-5-11"){ 
 			$DomainSid = Get-DomainSID -Domain $Domain -Server $Server -Credential $Creds
 			$MachineAccountQouta = Get-DomainObject -Domain $Domain -Server $Server -Credential $Creds | Where-Object objectsid -Like $DomainSid | Select-Object ms-ds-machineaccountquota
 			
@@ -2494,19 +2494,19 @@ Invoke-ADCheckDomainJoin -Domain 'contoso.com' -Server 'dc1.contoso.com' -User '
 				$count = 0
 				Write-Host -ForeGroundColor Yellow "[-] Failed to get ms-ds-machineaccountquota please manually check"
 			}
-	#}
-	#else {
-	#	$file = "$checks_path\can_join_domain.txt"
-	#	Write-Host -ForegroundColor DarkGreen "[+] The authenticated users group can't add computerobjects to the domain"
-	#	Write-Host -ForegroundColor Yellow "[-] Please manually check which users or groups can add computerobjects to the domain"
-	#	Write-Host "[W] Writing to $file"
-	#	$data | Out-File $file
-	#	$data = Get-DomainObject -Credential $creds -Domain $Domain -Server $Server | Where-Object ms-ds-machineaccountquota | select-object ms-ds-machineaccountquota
-	#	$count = $data2."ms-ds-machineaccountquota"
-	#	$file = "$checks_path\can_join_domain_amount.txt"
-	#	Write-Host "[W] Writing amount of computerobjects that can be joined to the domain by the object to $file"
-	#	$data | Out-File $file
-	#}
+	}
+	else {
+		$file = "$checks_path\can_join_domain.txt"
+		Write-Host -ForegroundColor DarkGreen "[+] The authenticated users group can't add computerobjects to the domain"
+		Write-Host -ForegroundColor Yellow "[-] Please manually check which users or groups can add computerobjects to the domain"
+		Write-Host "[W] Writing to $file"
+		$data | Out-File $file
+		$data = Get-DomainObject -Credential $creds -Domain $Domain -Server $Server | Where-Object ms-ds-machineaccountquota | select-object ms-ds-machineaccountquota
+		$count = $data2."ms-ds-machineaccountquota"
+		$file = "$checks_path\can_join_domain_amount.txt"
+		Write-Host "[W] Writing amount of computerobjects that can be joined to the domain by the object to $file"
+		$data | Out-File $file
+	}
 	Write-Host " "
 }
 
