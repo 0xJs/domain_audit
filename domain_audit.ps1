@@ -2472,17 +2472,18 @@ Invoke-ADCheckDomainJoin -Domain 'contoso.com' -Server 'dc1.contoso.com' -User '
 			$data2 = Get-DomainObject -Credential $creds -Domain $Domain -Server $Server | Where-Object ms-ds-machineaccountquota
 			if ($data2) {
 				$count = $data2."ms-ds-machineaccountquota"
+				Write-Host -ForegroundColor Red "[-] The authenticated users group(S-1-5-11) can add $count computerobjects to the domain"
+				Write-Host "[W] Writing to $file"
+				$data | Out-File $file
+				$file = "$checks_path\can_join_domain_amount.txt"
+				Write-Host "[W] Writing amount of computerobjects that can be joined to the domain by the object to $file"
+				$data2 | Out-File $file
 			}
 			else {
 				$count = 0
-				Write-Host "[-] ms-ds-machineaccountquota value not found, probaby unset. Setting it to 0 (unlimited)"
+				Write-Host -ForeGroundColor Yellow "[-] ms-ds-machineaccountquota value is not set (can still add computers to the domain) or its set to 0 (Can't add computers to the domain)"
+				Write-Host -ForeGroundColor Yellow "[-] Please manually try to add a computer to the domain to test!"
 			}
-			Write-Host -ForegroundColor Red "[-] The authenticated users group(S-1-5-11) can add $count computerobjects to the domain"
-			Write-Host "[W] Writing to $file"
-			$data | Out-File $file
-			$file = "$checks_path\can_join_domain_amount.txt"
-			Write-Host "[W] Writing amount of computerobjects that can be joined to the domain by the object to $file"
-			$data2 | Out-File $file
 		}
 		else {
 			$file = "$checks_path\can_join_domain.txt"
@@ -2497,7 +2498,6 @@ Invoke-ADCheckDomainJoin -Domain 'contoso.com' -Server 'dc1.contoso.com' -User '
 			$data | Out-File $file
 		}
 	Write-Host " "
-	
 }
 
 Function Invoke-ADCheckReachableComputers {
