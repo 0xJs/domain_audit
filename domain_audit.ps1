@@ -561,6 +561,9 @@ Execute all basic enumeration steps but skip BloudHound
 		Invoke-Expression "cmd /c start powershell -WindowStyle hidden -Command {Import-Module $script:BloodHound_Path; Invoke-BloodHound -CollectionMethod all -Domain $Domain -DomainController $Server -LdapUsername $User -LdapPassword $Password -OutputDirectory $Data_Path; Invoke-BloodHound -CollectionMethod session -Domain $Domain -DomainController $Server -LdapUsername $User -LdapPassword $Password -OutputDirectory $Data_Path; Invoke-BloodHound -CollectionMethod acl -Domain $Domain -DomainController $Server -LdapUsername $User -LdapPassword $Password -OutputDirectory $Data_Path}"
 	}
 	
+	Write-Verbose "[+] Gathering data of domain object"
+	$DomainData = Get-Domain -Domain $Domain -Credential $Creds
+	
 	Write-Verbose "[+] Gathering data of all Users"
 	Get-DomainUser -Domain $Domain -Server $Server -Credential $Creds | Select-Object samaccountname, description, mail, serviceprincipalname, msds-allowedtodelegateto, useraccountcontrol, lastlogon, pwdlastset | Export-Csv $Data_Path\data_users.csv
 	
@@ -624,7 +627,22 @@ Execute all basic enumeration steps but skip BloudHound
 	$percentage_admins = [math]::Round($percentage,2)
 	$thresholdpercentage = 5
 	
+	# Defining domain functional levels
+	$DomainMode = @{
+		0 = "Windows 2000 native"
+		1 = "Windows 2003 interim"
+		2 = "Windows 2003"
+		3 = "Windows 2008"
+		4 = "Windows 2008 R2"
+		5 = "Windows 2012"
+		6 = "Windows 2012 R2"
+		7 = "Windows 2016"
+		8 = "TBD"
+	}
+	$DomainFunctionalLevel = $DomainMode[$DomainData.DomainModeLevel]
+	
 	Write-Host "---------- DOMAIN INFORMATION ----------"
+	Write-Host "The domain functional level is: $DomainFunctionalLevel"
 	Write-Host "In the domain $Domain there are:" 
 	Write-Host "- $usercount users and $usercountenabled enabled users"
 	Write-Host "- $groupcount groups"
@@ -2611,7 +2629,4 @@ Invoke-ADCheckReachableComputers -Domain 'contoso.com' -Server 'dc1.contoso.com'
 			Write-Host -ForegroundColor Red "[+] There are no reachable computers, probably something wrong with DNS"
 		}
 	Write-Host " "
-	
 }
-
-
