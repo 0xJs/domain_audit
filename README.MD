@@ -92,22 +92,22 @@ Invoke-ADCheckAll will execute the following in order:
 ## TO-DO
 - A way to enumerate all shares, PowerView is doing weird. Crackmapexec is better but output is not in powershell and my crackmapexec is broken atm.
 - Check for sysvol and netlogon passwords
-- Fix dependancy options
-- Add ADCS checks, but need to set this up in a LAB environment first.
+
 - Check for signing and binding LDAPS port on DC's.
-- Expand Invoke-ADCheckDescriptions to check for the word pass and for dutch ww and wachtwoord etc.
 - Add Unconstrained delegation for user?
 - Add checks for kerberos password policy?
-- Add function to skip dns change
 - Check if printspooler is enabled on DC's
 - Check if webdav is active on reachable computers
-- Add SQL query to retrieve databases of accessible SQL servers
-- Check what happens when domain join amount is not 10.
 - Check for admin count on users or groups which are no longer admin
+- Add SQL query to retrieve databases of accessible SQL servers
+
 - Find a way to audit all ACL's.
+- Add ADCS checks, but need to set this up in a LAB environment first.
 - Split invoke-sqlaudit into seperate checks
 - Function to generate a password spray list
 - Add functionality to start password spray?
+- Add function to skip dns change
+- Fix dependancy options
 
 ## Example output Invoke-ADCheckAll
 ```
