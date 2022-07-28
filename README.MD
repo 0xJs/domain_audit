@@ -31,7 +31,7 @@ Invoke-ADCheckAll will execute the following in order:
 - Collect basic data of AD objects and place them in `/data/` directory in `.csv` format
 - Collect data with bloodhound - Collectionmethods all, acl and sessions in the background.
 - Create list of all (enabled) users, admin accounts, computers and groups in `/data/`
-- List amount of users, groups, computers, OU's, GPO's, Administrators
+- List amount of users, groups, computers, OU's, GPO's, Administrators, domain controllers and domain functional level.
 - Check if the amount of admins is more then 5% (High amount of admins in the domain)
 - Enumerate domain trusts and trusts within forst
 - Check if AzureAD or Azure SSO is installed
@@ -59,12 +59,14 @@ Invoke-ADCheckAll will execute the following in order:
     - Check if there are systems where LAPS isn't installed on
 - If LAPS GPO found or LAPS computers found - Check if the current user can read LAPS passwords
 - Get all users with a description - Manually check for passwords or interesting information
+    - Check if the string pw, pass, ww or wachtwoord is in the description.
 - Get all groups with a description - Manually check for passwords or interesting information
 - Get all computers with a description - Manually check for passwords or interesting information
 - Check if there are admins with a Spn
 - Check if there are users with a Spn 
     - Kerberoast users with a Spn
 - Check for users with constrained delegation
+- Check for users with unconstrained delegation
 - Check for computers with constrained delegation
 - Check for computers with unconstrained delegation except domain controllers
 - Check for computers with resource based constrained delegation set
@@ -87,14 +89,14 @@ Invoke-ADCheckAll will execute the following in order:
 - Check if there are computerobjects part of a high privileged groups
 - Check who can add computerobjects to the domain
     - Check if this is the default authenticated users group
+    - Check what the ms-ds-machineaccountqouta is, if it is null(good) or not-set(bad) or another value.
 - Check for accessible machines
 
 ## TO-DO
 - A way to enumerate all shares, PowerView is doing weird. Crackmapexec is better but output is not in powershell and my crackmapexec is broken atm.
 - Check for sysvol and netlogon passwords
-- Checks for exchange server (mailsniper)
+- Checks for exchange servers in the domain and checks with (mailsniper)? If that is possible.
 - Check for signing and binding LDAPS port on DC's. (Ldaprelayscan but its kinda broken)
-- Add Unconstrained delegation for user check
 - Add checks for kerberos password policy?
 - Check if printspooler is enabled on DC's
 - Check if webdav is active on reachable computers
@@ -105,7 +107,6 @@ Invoke-ADCheckAll will execute the following in order:
 - Add ADCS checks, but need to set this up in a LAB environment first.
 - Split invoke-sqlaudit into seperate checks
 - Function to generate a password spray list
-- Add functionality to start password spray?
 - Add function to skip dns change
 - Fix dependancy options
 
