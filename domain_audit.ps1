@@ -167,8 +167,11 @@ Start ADChecks with all modules
 
 		Invoke-ADCheckDomainJoin -Domain $Domain -Server $Server -User $User -Password $Password
 		
-		Invoke-ADCheckReachableComputers -Domain $Domain -Server $Server -User $User -Password $Password
+		Invoke-ADCheckSysvolPassword -Domain $Domain -Server $Server -User $User -Password $Password
 		
+		Invoke-ADCheckNetlogonPassword -Domain $Domain -Server $Server -User $User -Password $Password
+		
+		Invoke-ADCheckSMB -Domain $Domain -Server $Server -User $User -Password $Password
 	}
 	elseif ($CredentialStatus -eq $false) {
 		Write-Host -ForegroundColor Red "[-] Exiting, please provide a valid set op credentials"
@@ -1954,7 +1957,6 @@ Invoke-ADCheckUserAttributes -Domain 'contoso.com' -Server 'dc1.contoso.com' -Us
 					else {
 						Write-Host -ForegroundColor DarkGreen "[+] The password for user $samaccountname isn't empty"
 					}
-					Write-Host " "
 				}
 			}
 		}
@@ -2630,3 +2632,342 @@ Invoke-ADCheckReachableComputers -Domain 'contoso.com' -Server 'dc1.contoso.com'
 		}
 	Write-Host " "
 }
+
+Function Invoke-ADCheckSysvolPassword {
+<#
+.SYNOPSIS
+Author: Jony Schats - 0xjs
+Required Dependencies: None
+Optional Dependencies: None
+
+.DESCRIPTION
+Mounts the sysvol and checks for the string password in all policies.
+
+.PARAMETER Domain
+Specifies the domain to use for the query.
+
+.PARAMETER Server
+Specifies an Active Directory server IP to bind to, e.g. 10.0.0.1
+
+.PARAMETER User
+Specifies the username to use for the query.
+
+.PARAMETER Password
+Specifies the Password in combination with the username to use for the query.
+
+.PARAMETER OutputDirectory
+Specifies the path to use for the output directory, defaults to the current directory.
+
+.EXAMPLE
+Invoke-ADCheckSysvolPassword -Domain 'contoso.com' -Server 'dc1.contoso.com' -User '0xjs' -Password 'Password01!'
+#>
+
+	#Parameters
+	[CmdletBinding()]
+	Param(
+		[Parameter(Mandatory=$true,HelpMessage="Enter a domain name here, e.g. contoso.com")]
+		[ValidateNotNullOrEmpty()]
+		[string]$Domain,
+		
+		[Parameter(Mandatory=$true,HelpMessage="Enter a IP of a domain controller here, e.g. 10.0.0.1")]
+		[ValidateNotNullOrEmpty()]
+		[string]$Server,
+		
+		[Parameter(Mandatory=$true,HelpMessage="Enter the username to connect with")]
+		[ValidateNotNullOrEmpty()]
+		[string]$User,
+		
+		[Parameter(Mandatory=$true,HelpMessage="Enter the password of the user")]
+		[ValidateNotNullOrEmpty()]
+		[string]$Password,
+		
+		[Parameter(Mandatory=$false)]
+		[ValidateNotNullOrEmpty()]
+		[string]$OutputDirectory
+	)
+
+	if ($OutputDirectoryCreated -ne $true) {
+		if ($PSBoundParameters['OutputDirectory']) {
+			New-OutputDirectory -Domain $Domain -OutputDirectory $OutputDirectory
+			}
+			else {
+				New-OutputDirectory -Domain $Domain
+		}
+	}
+	
+	if ($User -ne $Creds.Username) {
+		Create-CredentialObject -User $User -Password $Password
+	}	
+
+	# Look through sysvol on each domain controller for the string password in all *xml files
+	Write-Host "---Checking if there are passwords in the SYSVOL share---"
+	Write-Host "This might take a while"
+	$file = "$checks_path\sysvol_passwords.txt"
+	$data = Get-DomainController -Domain $Domain -Server $Server -Credential $Creds
+	ForEach ($dc in $data){
+		$name = $dc.name
+		$hostname = $dc.dnshostname
+		Write-Host "[+] Checking SYSVOL of $name"
+		New-PSDrive -Name $dc.name -PSProvider FileSystem -Root \\$hostname\SYSVOL -Credential $Creds | out-null
+		$data = Get-ChildItem -Recurse -Path \\$hostname\SYSVOL\$Domain\Policies\*.xml -ErrorAction silentlycontinue | Select-String -Pattern "password"
+		if ($data){ 
+			$count = $data | Measure-Object | Select-Object -expand Count
+			Write-Host -ForegroundColor Yellow "[-] There might be $count passwords in the SYSVOL of $name. Please manually check"
+			Write-Host "Writing to $file"
+			$data | Add-Content $file
+		}
+		else {
+			Write-Host -ForegroundColor DarkGreen "[+] There are no passwords in the sysvol of $name"
+		}
+	}
+	Write-Host " "
+}
+
+Function Invoke-ADCheckNetlogonPassword {
+<#
+.SYNOPSIS
+Author: Jony Schats - 0xjs
+Required Dependencies: None
+Optional Dependencies: None
+
+.DESCRIPTION
+Mounts the netlogon share and checks for the string password in all files.
+
+.PARAMETER Domain
+Specifies the domain to use for the query.
+
+.PARAMETER Server
+Specifies an Active Directory server IP to bind to, e.g. 10.0.0.1
+
+.PARAMETER User
+Specifies the username to use for the query.
+
+.PARAMETER Password
+Specifies the Password in combination with the username to use for the query.
+
+.PARAMETER OutputDirectory
+Specifies the path to use for the output directory, defaults to the current directory.
+
+.EXAMPLE
+Invoke-ADCheckNetlogonPassword -Domain 'contoso.com' -Server 'dc1.contoso.com' -User '0xjs' -Password 'Password01!'
+#>
+
+	#Parameters
+	[CmdletBinding()]
+	Param(
+		[Parameter(Mandatory=$true,HelpMessage="Enter a domain name here, e.g. contoso.com")]
+		[ValidateNotNullOrEmpty()]
+		[string]$Domain,
+		
+		[Parameter(Mandatory=$true,HelpMessage="Enter a IP of a domain controller here, e.g. 10.0.0.1")]
+		[ValidateNotNullOrEmpty()]
+		[string]$Server,
+		
+		[Parameter(Mandatory=$true,HelpMessage="Enter the username to connect with")]
+		[ValidateNotNullOrEmpty()]
+		[string]$User,
+		
+		[Parameter(Mandatory=$true,HelpMessage="Enter the password of the user")]
+		[ValidateNotNullOrEmpty()]
+		[string]$Password,
+		
+		[Parameter(Mandatory=$false)]
+		[ValidateNotNullOrEmpty()]
+		[string]$OutputDirectory
+	)
+
+	if ($OutputDirectoryCreated -ne $true) {
+		if ($PSBoundParameters['OutputDirectory']) {
+			New-OutputDirectory -Domain $Domain -OutputDirectory $OutputDirectory
+			}
+			else {
+				New-OutputDirectory -Domain $Domain
+		}
+	}
+	
+	if ($User -ne $Creds.Username) {
+		Create-CredentialObject -User $User -Password $Password
+	}	
+
+	# Look through Netlogon on each domain controller for the string password in all *xml files
+	Write-Host "---Checking if there are passwords in the NETLOGON share---"
+	Write-Host "This might take a while"
+	$file = "$checks_path\netlogon_passwords.txt"
+	$data = Get-DomainController -Domain $Domain -Server $Server -Credential $Creds
+	ForEach ($dc in $data){
+		$name = $dc.name
+		$hostname = $dc.dnshostname
+		Write-Host "[+] Checking SYSVOL of $name"
+		$MountName = "$name" + "-netlogon"
+		New-PSDrive -Name "$MountName" -PSProvider FileSystem -Root \\$hostname\NETLOGON -Credential $Creds | out-null
+		$data = Get-ChildItem -Recurse -Path \\$hostname\NETLOGON\* -ErrorAction silentlycontinue | Select-String -Pattern "password"
+		if ($data){ 
+			$count = $data | Measure-Object | Select-Object -expand Count
+			Write-Host -ForegroundColor Yellow "[-] There might be $count passwords in the NETLOGON of $name. Please manually check"
+			Write-Host "Writing to $file"
+			$data | Add-Content $file
+		}
+		else {
+			Write-Host -ForegroundColor DarkGreen "[+] There are no passwords in the NETLOGON of $name"
+		}
+	}
+	Write-Host " "
+}
+
+Function Invoke-ADCheckSMB {
+<#
+.SYNOPSIS
+Author: Jony Schats - 0xjs
+Required Dependencies: Invoke-ADCheckReachableComputers, 
+Optional Dependencies: None
+
+.DESCRIPTION
+Run crackmapexec with the provided credentials against all reachable computers within the domain and enumerate shares. Save the output which is getting parsed to find hosts with SMBv1 enabled, Signing false and creatte a list of all readable and writeable shares.
+
+.PARAMETER Domain
+Specifies the domain to use for the query.
+
+.PARAMETER Server
+Specifies an Active Directory server IP to bind to, e.g. 10.0.0.1
+
+.PARAMETER User
+Specifies the username to use for the query.
+
+.PARAMETER Password
+Specifies the Password in combination with the username to use for the query.
+
+.PARAMETER OutputDirectory
+Specifies the path to use for the output directory, defaults to the current directory.
+
+.EXAMPLE
+Invoke-ADCheckSMB -Domain 'contoso.com' -Server 'dc1.contoso.com' -User '0xjs' -Password 'Password01!'
+#>
+
+	#Parameters
+	[CmdletBinding()]
+	Param(
+		[Parameter(Mandatory=$true,HelpMessage="Enter a domain name here, e.g. contoso.com")]
+		[ValidateNotNullOrEmpty()]
+		[string]$Domain,
+		
+		[Parameter(Mandatory=$true,HelpMessage="Enter a IP of a domain controller here, e.g. 10.0.0.1")]
+		[ValidateNotNullOrEmpty()]
+		[string]$Server,
+		
+		[Parameter(Mandatory=$true,HelpMessage="Enter the username to connect with")]
+		[ValidateNotNullOrEmpty()]
+		[string]$User,
+		
+		[Parameter(Mandatory=$true,HelpMessage="Enter the password of the user")]
+		[ValidateNotNullOrEmpty()]
+		[string]$Password,
+		
+		[Parameter(Mandatory=$false)]
+		[ValidateNotNullOrEmpty()]
+		[string]$OutputDirectory
+	)
+
+	if ($OutputDirectoryCreated -ne $true) {
+		if ($PSBoundParameters['OutputDirectory']) {
+			New-OutputDirectory -Domain $Domain -OutputDirectory $OutputDirectory
+			}
+			else {
+				New-OutputDirectory -Domain $Domain
+		}
+	}
+	
+	if ($User -ne $Creds.Username) {
+		Create-CredentialObject -User $User -Password $Password
+	}
+	
+	Invoke-ADCheckReachableComputers -Domain $Domain -Server $Server -User $User -Password $Password
+	
+	# Collecting SMB data and shares with crackmapexec
+	Write-Host "---Running crackmapexec against each reachable host enumerating SMB data and shares---"
+	$data = crackmapexec smb $data_path\computers_accessible.txt -d $Domain -u $User -p $Password --shares 2> null
+	$file = "$data_path\crackmapexec_reachablecomputers.txt"
+	if ($data){ 
+			Write-Host "[W] Writing to $file"
+			# Remove the colors from the data
+			$data = $data -replace '\x1b\[[0-9;]*m'
+			$data | Out-File -Encoding utf8 $file
+			Write-Host " "
+			
+			# Filtering crackmapexec data for SMBv1 and signing
+			$data2 = $data | Select-String "name:"
+			# Remove the (R) String
+			$data2 = $data2 -replace '\(R\)', ''
+			# Split the output to name:<COMPuTERNAME> (domain:<DOMAIN>) (signing:False) (SMBv1:False)
+			$data2 = foreach ($line in $data2) {$line.split("(",2)[1]}
+			# Removing strings so we can create a PS Object
+			$data2 = $data2 -replace 'name:', '' -replace 'signing:', '' -replace 'SMBv1:', '' -replace '\(', '' -replace '\)', ''
+			# Selecting the hostname, SMBv1 and Signing values
+			$data2 = $data2 | ConvertFrom-String | Select-Object p1, p3, p4
+			# Renaming the p11, p13 and p14
+			$data2 = $data2 | Add-Member -MemberType AliasProperty -Name hostname -Value P1 -PassThru | Add-Member -MemberType AliasProperty -Name signing -Value P3 -PassThru | Add-Member -MemberType AliasProperty -Name smbv1 -Value P4 -PassThru | Select-Object hostname, signing, smbv1
+			
+			# Checking for SMBV1
+			Write-Host "---Checking for hosts which have SMBV1 enabled---"
+			$data3 = $data2 | Where-Object -Property smbv1 -EQ True | Select-Object hostname
+			$file = "$findings_path\computers_smbv1.txt"
+			if ($data3){ 
+					$count = $data3 | Measure-Object | Select-Object -expand Count
+					Write-Host -ForegroundColor Red "[+] There are $count reachable computers which have SMBV1 enabled (SMBv1:True)"
+					Write-Host "[W] Writing to $file"
+					$data3 | Out-File -Encoding utf8 $file
+				}
+				else {
+					Write-Host -ForegroundColor DarkGreen "[+] There are no reachable computers which have SMBV1 enabled (SMBv1:True)"
+				}
+			Write-Host " "
+			
+			# Checking for SMB Signing
+			Write-Host "---Checking for hosts without signing---"
+			$data3 = $data2 | Where-Object -Property signing -EQ False | Select-Object hostname
+			$file = "$findings_path\computers_nosigning.txt"
+			if ($data3){ 
+					$count = $data3 | Measure-Object | Select-Object -expand Count
+					Write-Host -ForegroundColor Red "[+] There are $count reachable computers which does not require signing (Signing:False)"
+					Write-Host "[W] Writing to $file"
+					$data3 | Out-File -Encoding utf8 $file
+				}
+				else {
+					Write-Host -ForegroundColor DarkGreen "[+] There are no reachable computers which do not require signing (Signing:False)"
+				}
+			Write-Host " "
+			
+			# Checking for readable shares
+			Write-Host "---Checking for shares with READ access---"
+			$file = "$data_path\shares_read_access.txt"
+			$data2 = $data | Select-String "READ" | Select-String -NotMatch IPC | Select-String -NotMatch PRINT
+			if ($data2){ 
+					$count = $data2 | Measure-Object | Select-Object -expand Count
+					Write-Host -ForegroundColor Yellow "[+] There are $count shares the current user can READ"
+					Write-Host "[W] Writing to $file"
+					$data2 | Out-File -Encoding utf8 $file
+				}
+				else {
+					Write-Host -ForegroundColor DarkGreen "[+] There are no shares the current user can READ"
+				}
+			Write-Host " "
+			
+			# Checking for writeable shares
+			Write-Host "---Checking for shares with WRITE access---"
+			$data2 = $data | Select-String "WRITE" | Select-String -NotMatch IPC | Select-String -NotMatch PRINT
+			$file = "$data_path\shares_write_access.txt"
+			if ($data3){ 
+					$count = $data2 | Measure-Object | Select-Object -expand Count
+					Write-Host -ForegroundColor Yellow "[+] There are $count shares the current user can WRITE to"
+					Write-Host "[W] Writing to $file"
+					$data2 | Out-File -Encoding utf8 $file
+				}
+				else {
+					Write-Host -ForegroundColor DarkGreen "[+] There are no shares the current user can WRITE to"
+				}
+			Write-Host " "
+	}
+}
+
+
+
+# Find Exchange servers in the domain Get-DomainGroupMember "Exchange Trusted Subsystem" -Domain $Domain -Server $Server -Credential $Creds  | select MemberName
