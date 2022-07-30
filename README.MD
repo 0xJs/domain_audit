@@ -4,7 +4,7 @@ The tool is a wrapper around PowerView, Impacket, PowerUpSQL and BloodHound to e
 ## Installation/Requirements
 - Python and [Impacket](https://github.com/SecureAuthCorp/impacket) are installed for kerberoasting/as-rep roasting.
 - Crackmapexec is installed through pip. It executes the crackmapexec command on the shell.
-- Make sure the path viariables to the following tools are correct, especially impacket.
+- Make sure the path viariables in the script to the following tools are correct, especially impacket.
 ```
 $powerview_path = "$PSScriptRoot\import\PowerView.ps1" 
 $impacket_path = "$PSScriptRoot\import\impacket"
