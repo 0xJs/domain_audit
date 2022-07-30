@@ -108,11 +108,9 @@ Invoke-ADCheckAll will execute the following in order:
 - Check if webdav is active on reachable computers
 - Check for admin count on users or groups which are no longer admin
 - Add SQL query to retrieve databases of accessible SQL servers
-
 - Find a way to audit all ACL's (Invoke-ACLScanner doesnt work well from non domain joined perspective)
 - Add ADCS checks, but need to set this up in a LAB environment first.
 - Split invoke-sqlaudit into seperate checks
-- Function to generate a password spray list
 - Add function to skip dns change
 - Fix dependancy options
 
