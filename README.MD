@@ -2,9 +2,9 @@
 The tool is a wrapper around PowerView, Impacket, PowerUpSQL and BloodHound to execute a lot of checks I normally perform during a AD pentest/assesment. **The tool is still being developed and tested.** Thanks to all the authors of the tools listed above!
 
 ## Installation/Requirements
-- Python and [Impacket](https://github.com/SecureAuthCorp/impacket) are installed for kerberoasting/as-rep roasting.
-- Crackmapexec is installed through pip. It executes the crackmapexec command on the shell.
-- Make sure the path viariables in the script to the following tools are correct, especially impacket.
+- Python and [Impacket](https://github.com/SecureAuthCorp/impacket) are required for kerberoasting/as-rep roasting.
+- Crackmapexec command should be known. Next version ill provide the new cme version for python 3.10 probably. Finally got it to work on my Windows VM, had some python dependancy problems which fixed by reinstalling.
+- Make sure the path viariables in the script to the following tools are correct, especially impacket (since it doesn't clone from this repo).
 ```
 $powerview_path = "$PSScriptRoot\import\PowerView.ps1" 
 $impacket_path = "$PSScriptRoot\import\impacket"
