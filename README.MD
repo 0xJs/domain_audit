@@ -6,11 +6,11 @@ The tool is a wrapper around PowerView, Impacket, PowerUpSQL and BloodHound to e
 - Crackmapexec command should be known. Next version ill provide the new cme version for python 3.10 probably. Finally got it to work on my Windows VM, had some python dependancy problems which fixed by reinstalling.
 - Make sure the path viariables in the script to the following tools are correct, especially impacket (since it doesn't clone from this repo).
 ```
-$powerview_path = "$PSScriptRoot\import\PowerView.ps1" 
-$impacket_path = "$PSScriptRoot\import\impacket"
-$bloodhound_path = "$PSScriptRoot\import\Sharphound.ps1"
-$sqlchecks_path = "$PSScriptRoot\sql_checks.ps1"
-$gpregisterpolicy_path = "$PSScriptRoot\import\GPRegistryPolicy\GPRegistryPolicy.psd1"
+$script:PowerView_Path = "$PSScriptRoot\import\PowerView.ps1"
+$script:Powerupsql_Path = "$PSScriptRoot\import\PowerUpSQL.ps1"
+$script:Impacket_Path = "$PSScriptRoot\import\impacket"
+$script:BloodHound_Path = "$PSScriptRoot\import\Sharphound.ps1"
+$script:GpRegisteryPolicy_Path = "$PSScriptRoot\import\GPRegistryPolicy\GPRegistryPolicy.psd1"
 ```
 
 ## Running the tool and execute all checks
