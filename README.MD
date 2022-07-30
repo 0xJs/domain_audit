@@ -90,11 +90,16 @@ Invoke-ADCheckAll will execute the following in order:
 - Check who can add computerobjects to the domain
     - Check if this is the default authenticated users group
     - Check what the ms-ds-machineaccountqouta is, if it is null(good) or not-set(bad) or another value.
+- Check for passwords in the sysvol
+- Check for passwords in netlogon (scripts, programs etc)
 - Check for accessible machines
+- Checks for SMB
+    - Check SMBv1
+    - Check signing requirement
+    - Check for readable shares
+    - Check for writable shares
 
 ## TO-DO
-- A way to enumerate all shares, PowerView is doing weird. Crackmapexec is better but output is not in powershell and my crackmapexec is broken atm.
-- Check for sysvol and netlogon passwords
 - Checks for exchange servers in the domain and checks with (mailsniper)? If that is possible.
 - Check for signing and binding LDAPS port on DC's. (Ldaprelayscan but its kinda broken)
 - Add checks for kerberos password policy?
