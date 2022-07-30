@@ -300,4 +300,28 @@ Writing password policy to C:\Tools\domain_audit\amsterdam.bank.local-2022-07-19
 [W] Writing to C:\Tools\domain_audit\amsterdam.bank.local-2022-07-19\data\computers_accessible.txt
 ```
 
+```
+---------- EXECUTING SQL CHECKS ----------
+---Checking MSSQL instances---
+[+] Found 1 MSSQL instances
+[+] Checking connection to each MSSQL instance
+[-] The current user can access 1 MSSQL instances
+[W] Writing to C:\Tools\domain_audit\amsterdam.bank.local-2022-07-30\findings\SQLserver_user_has_access.txt
+
+---Checking if the user is sysadmin on the accessible instances---
+[+] The current user is not sysdmin to any SQL instances
+
+---Checking database links for sysadmin security context---
+[-] There are 1 links which run under the security context of a sysadmin user
+[W] Writing to C:\Tools\domain_audit\amsterdam.bank.local-2022-07-30\findings\SQLserver_sysadmin_on_links.txt
+
+---Running Invoke-SQLAudit on the accessible instances---
+This might take a while
+VERBOSE: WEB01.amsterdam.bank.local : No named instance found.
+VERBOSE: WEB01.amsterdam.bank.local : Connection Success.
+VERBOSE: WEB01.amsterdam.bank.local : Checking for autoexec stored procedures...
+[-] Invoke-SQLAudit found 7 issues
+[W] Writing to C:\Tools\domain_audit\amsterdam.bank.local-2022-07-30\findings\SQLserver_sqlaudit.txt
+```
+
 ![image](https://user-images.githubusercontent.com/43987245/179800219-f087ba71-7d87-4a03-8f02-f5833b6a0289.png)
