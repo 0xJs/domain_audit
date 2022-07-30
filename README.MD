@@ -1,8 +1,9 @@
 # Domain Audit
 The tool is a wrapper around PowerView, Impacket, PowerUpSQL and BloodHound to execute a lot of checks I normally perform during a AD pentest/assesment. **The tool is still being developed and tested.** Thanks to all the authors of the tools listed above!
 
-## Installation
-- Make sure that Python and [Impacket](https://github.com/SecureAuthCorp/impacket) are installed for kerberoasting/as-rep roasting.
+## Installation/Requirements
+- Python and [Impacket](https://github.com/SecureAuthCorp/impacket) are installed for kerberoasting/as-rep roasting.
+- Crackmapexec is installed through pip. It executes the crackmapexec command on the shell.
 - Make sure the path viariables to the following tools are correct, especially impacket.
 ```
 $powerview_path = "$PSScriptRoot\import\PowerView.ps1" 
