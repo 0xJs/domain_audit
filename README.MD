@@ -1,5 +1,5 @@
 # Domain Audit
-The tool is a wrapper around PowerView, Impacket, PowerUpSQL and BloodHound to execute a lot of checks I normally perform during a AD pentest/assesment. **The tool is still being developed and tested.** Thanks to all the authors of the tools listed above!
+The tool is a wrapper around PowerView, Impacket, PowerUpSQL, BloodHound and Crackmapexec to execute a lot of checks performed during a AD pentest/assesment. Thanks to all the authors of the original tools.
 
 ## Installation/Requirements
 - Python and [Impacket](https://github.com/SecureAuthCorp/impacket) are required for kerberoasting/as-rep roasting.
