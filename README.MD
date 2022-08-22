@@ -1,5 +1,5 @@
 # Domain Audit
-The tool is a wrapper around PowerView, Impacket, PowerUpSQL, BloodHound, Ldaprelayscan and Crackmapexec to execute a lot of checks performed during a AD pentest/assesment. Thanks to all the authors of the original tools.
+The tool is a wrapper around PowerView, Impacket, PowerUpSQL, BloodHound, Ldaprelayscan and Crackmapexec to automate the execution of enumeration and a lot of checks performed during a AD pentest/assesment. Thanks to all the authors of the original tools.
 
 ## Installation & Setup
 - Install python 3.10 from the Windows store
