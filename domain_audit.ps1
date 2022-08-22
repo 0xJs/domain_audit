@@ -891,14 +891,35 @@ Start all SQL checks but skip prompt asking if the process is running as the dom
 
 		Write-Host "---Checking MSSQL instances---"
 		$data = Get-DomainComputer -Server $Server -Credential $Creds -Domain $Domain | Where-Object serviceprincipalname -Match MSSQL | Select-Object -ExpandProperty serviceprincipalname | Select-String MSSQL
-		$data = $data -replace 'MSSQLSvc/', ''
 		$count = $data | Measure-Object | Select-Object -expand Count
 		if ($data){ 
 			Write-Host "[+] Found $count MSSQL instances"
 		
+			$TblSQLServerSpns = New-Object -TypeName System.Data.DataTable
+			$null = $TblSQLServerSpns.Columns.Add('Instance')
+			
+			foreach($instance in $data) {
+			
+				$sqlpart = $instance.line.split('/')[1].split(':')[1]
+				
+				# Check if the instance is a number and use the relevent delim
+				$Value = 0
+				if([int32]::TryParse($sqlpart,[ref]$Value)) {
+					$sqlinstance = $instance -replace ':', ','
+				}
+				else { 
+					$sqlinstance = $instance -replace ':', '\'
+				}
+				
+				$sqlinstance = $sqlinstance -replace 'MSSQLSvc/', ''
+				
+				$null = $TblSQLServerSpns.Rows.Add($sqlinstance)
+			
+			}
+			
 			# Checking connection to MSSQL instances
 			Write-Host "[+] Checking connection to each MSSQL instance"
-			$results = ForEach ($sqlserver in $data){
+			$results = ForEach ($sqlserver in $TblSQLServerSpns.Instance){
 				Get-SQLConnectionTest -Instance $sqlserver
 			}
 			$Accessible_SQLServers = $results | Where-Object -Property status -Like Accessible 

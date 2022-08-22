@@ -1,15 +1,16 @@
 # Domain Audit
-The tool is a wrapper around PowerView, Impacket, PowerUpSQL and BloodHound to execute a lot of checks I normally perform during a AD pentest/assesment. **The tool is still being developed and tested.** Thanks to all the authors of the tools listed above!
+The tool is a wrapper around PowerView, Impacket, PowerUpSQL, BloodHound and Crackmapexec to execute a lot of checks performed during a AD pentest/assesment. Thanks to all the authors of the original tools.
 
-## Installation
-- Make sure that Python and [Impacket](https://github.com/SecureAuthCorp/impacket) are installed for kerberoasting/as-rep roasting.
-- Make sure the path viariables to the following tools are correct, especially impacket.
+## Installation/Requirements
+- Python and [Impacket](https://github.com/SecureAuthCorp/impacket) are required for kerberoasting/as-rep roasting.
+- Crackmapexec command should be known. Next version ill provide the new cme version for python 3.10 probably. Finally got it to work on my Windows VM, had some python dependancy problems which fixed by reinstalling.
+- Make sure the path viariables in the script to the following tools are correct, especially impacket (since it doesn't clone from this repo).
 ```
-$powerview_path = "$PSScriptRoot\import\PowerView.ps1" 
-$impacket_path = "$PSScriptRoot\import\impacket"
-$bloodhound_path = "$PSScriptRoot\import\Sharphound.ps1"
-$sqlchecks_path = "$PSScriptRoot\sql_checks.ps1"
-$gpregisterpolicy_path = "$PSScriptRoot\import\GPRegistryPolicy\GPRegistryPolicy.psd1"
+$script:PowerView_Path = "$PSScriptRoot\import\PowerView.ps1"
+$script:Powerupsql_Path = "$PSScriptRoot\import\PowerUpSQL.ps1"
+$script:Impacket_Path = "$PSScriptRoot\import\impacket"
+$script:BloodHound_Path = "$PSScriptRoot\import\Sharphound.ps1"
+$script:GpRegisteryPolicy_Path = "$PSScriptRoot\import\GPRegistryPolicy\GPRegistryPolicy.psd1"
 ```
 
 ## Running the tool and execute all checks
@@ -90,11 +91,16 @@ Invoke-ADCheckAll will execute the following in order:
 - Check who can add computerobjects to the domain
     - Check if this is the default authenticated users group
     - Check what the ms-ds-machineaccountqouta is, if it is null(good) or not-set(bad) or another value.
+- Check for passwords in the sysvol
+- Check for passwords in netlogon (scripts, programs etc)
 - Check for accessible machines
+- Checks for SMB
+    - Check SMBv1
+    - Check signing requirement
+    - Check for readable shares
+    - Check for writable shares
 
 ## TO-DO
-- A way to enumerate all shares, PowerView is doing weird. Crackmapexec is better but output is not in powershell and my crackmapexec is broken atm.
-- Check for sysvol and netlogon passwords
 - Checks for exchange servers in the domain and checks with (mailsniper)? If that is possible.
 - Check for signing and binding LDAPS port on DC's. (Ldaprelayscan but its kinda broken)
 - Add checks for kerberos password policy?
@@ -102,11 +108,9 @@ Invoke-ADCheckAll will execute the following in order:
 - Check if webdav is active on reachable computers
 - Check for admin count on users or groups which are no longer admin
 - Add SQL query to retrieve databases of accessible SQL servers
-
 - Find a way to audit all ACL's (Invoke-ACLScanner doesnt work well from non domain joined perspective)
 - Add ADCS checks, but need to set this up in a LAB environment first.
 - Split invoke-sqlaudit into seperate checks
-- Function to generate a password spray list
 - Add function to skip dns change
 - Fix dependancy options
 
