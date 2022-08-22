@@ -1,4 +1,4 @@
-# Contributing to RedTeaming Cheatsheet
+# Contributing to the Domain_Audit tool
 I would love your input. Feel free to contribute and send a pull request adding a new PowerShell function.
 
 ## Any contributions you make will be under the MIT Software License
