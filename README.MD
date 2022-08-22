@@ -1,7 +1,7 @@
 # Domain Audit
 The tool is a wrapper around PowerView, Impacket, PowerUpSQL, BloodHound, Ldaprelayscan and Crackmapexec to execute a lot of checks performed during a AD pentest/assesment. Thanks to all the authors of the original tools.
 
-## Installation/Requirements
+## Installation & Setup
 - Install python 3.10 from the Windows store
 ```
 git clone https://github.com/0xJs/domain_audit
