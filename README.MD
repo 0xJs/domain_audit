@@ -126,7 +126,7 @@ Invoke-ADCheckAll will execute the following in order:
     - Check for writable shares
 - Check if the webservice client is running on accessible machines
 
-## TO-DO
+## TO-DO & Features
 - Add checks for kerberos password policy?
 - Check for admin count on users or groups which are no longer admin
 - Add SQL query to retrieve databases of accessible SQL servers
