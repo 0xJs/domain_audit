@@ -8,6 +8,8 @@ $script:Powerupsql_Path = "$PSScriptRoot\import\PowerUpSQL.ps1"
 $script:Impacket_Path = "$PSScriptRoot\import\impacket"
 $script:BloodHound_Path = "$PSScriptRoot\import\Sharphound.ps1"
 $script:GpRegisteryPolicy_Path = "$PSScriptRoot\import\GPRegistryPolicy\GPRegistryPolicy.psd1"
+$script:CME_Path = "$PSScriptRoot\import\cme"
+$script:LdapRelayScan_Path = "$PSScriptRoot\import\LdapRelayScan\LdapRelayScan.py"
 
 # Variables
 $script:CredentialStatus = ''
@@ -34,7 +36,7 @@ Optional Dependencies: None
 <DESCRIPTION>
 
 .PARAMETER Domain
-Specifies the domain to use for the query.
+Specifies the domain to use for the query and creating outputdirectory.
 
 .PARAMETER Server
 Specifies an Active Directory server IP to bind to, e.g. 10.0.0.1
@@ -171,7 +173,16 @@ Start ADChecks with all modules
 		
 		Invoke-ADCheckNetlogonPassword -Domain $Domain -Server $Server -User $User -Password $Password
 		
+		Invoke-ADCheckPrintspoolerDC -Domain $Domain -Server $Server -User $User -Password $Password
+		
+		Invoke-ADCheckLDAP -Domain $Domain -Server $Server -User $User -Password $Password
+		
+		Invoke-ADCheckExchange -Domain $Domain -Server $Server -User $User -Password $Password
+		
 		Invoke-ADCheckSMB -Domain $Domain -Server $Server -User $User -Password $Password
+		
+		Invoke-ADCheckWebclient -Domain $Domain -Server $Server -User $User -Password $Password
+		
 	}
 	elseif ($CredentialStatus -eq $false) {
 		Write-Host -ForegroundColor Red "[-] Exiting, please provide a valid set op credentials"
@@ -377,7 +388,7 @@ Optional Dependencies: None
 Tests a set of credentials against the DC.
 
 .PARAMETER Domain
-Specifies the domain to use for the query.
+Specifies the domain to use for the query and creating outputdirectory.
 
 .PARAMETER Server
 Specifies an Active Directory server IP to bind to, e.g. 10.0.0.1
@@ -485,7 +496,7 @@ Optional Dependencies: None
 Enumerates basic Active Directory stuff like users, groups, computers etc. and saves usefull info in CSV and .txt formats.
 
 .PARAMETER Domain
-Specifies the domain to use for the query.
+Specifies the domain to use for the query and creating outputdirectory.
 
 .PARAMETER Server
 Specifies an Active Directory server IP to bind to, e.g. 10.0.0.1
@@ -682,7 +693,7 @@ Optional Dependencies: None
 Enumerates trusts of the current domain and tries to enumerate trusts of trusted domains within the same forest.
 
 .PARAMETER Domain
-Specifies the domain to use for the query.
+Specifies the domain to use for the query and creating outputdirectory.
 
 .PARAMETER Server
 Specifies an Active Directory server IP to bind to, e.g. 10.0.0.1
@@ -796,7 +807,7 @@ Optional Dependencies: None
 Checks if there are any SQL instances in the domain and then checks if the curent user can access them. It checks if the current user is sysadmin and runs, if the SQL instances have any links and if they are configured as sysadmin. Then it runs Invoke-SQLAudit against the instances.
 
 .PARAMETER Domain
-Specifies the domain to use for the query.
+Specifies the domain to use for the query and creating outputdirectory.
 
 .PARAMETER Server
 Specifies an Active Directory server IP to bind to, e.g. 10.0.0.1
@@ -980,7 +991,7 @@ Optional Dependencies: None
 Checks if Azure AD user(A user starting with MSOL_ or AAD_) is present in the domain and if a computeraccount with the name AZUREADSSOACC exists within the domain.
 
 .PARAMETER Domain
-Specifies the domain to use for the query.
+Specifies the domain to use for the query and creating outputdirectory.
 
 .PARAMETER Server
 Specifies an Active Directory server IP to bind to, e.g. 10.0.0.1
@@ -1073,7 +1084,7 @@ Optional Dependencies: None
 Check the password and lockout policy for strenght requirements and if cleartextpassword is set to 0.
 
 .PARAMETER Domain
-Specifies the domain to use for the query.
+Specifies the domain to use for the query and creating outputdirectory.
 
 .PARAMETER Server
 Specifies an Active Directory server IP to bind to, e.g. 10.0.0.1
@@ -1216,7 +1227,7 @@ Optional Dependencies: None
 Checks if LAPS exists in the domain by checking GPO and the ms-Mcs-AdmPwdExpirationTime attribute. If a GPO is found it enumerates the LAPS policy. Then It checks if the current user can read any LAPS passwords.
 
 .PARAMETER Domain
-Specifies the domain to use for the query.
+Specifies the domain to use for the query and creating outputdirectory.
 
 .PARAMETER Server
 Specifies an Active Directory server IP to bind to, e.g. 10.0.0.1
@@ -1451,7 +1462,7 @@ Optional Dependencies: None
 Requests all users, computers and groups with a description and exports there to a txt file.
 
 .PARAMETER Domain
-Specifies the domain to use for the query.
+Specifies the domain to use for the query and creating outputdirectory.
 
 .PARAMETER Server
 Specifies an Active Directory server IP to bind to, e.g. 10.0.0.1
@@ -1573,7 +1584,7 @@ Optional Dependencies: None
 Check is there are any kerberoastable domain admins, then checks for all users and kerberoasts every user. Then it checks for AS-REP roasting.
 
 .PARAMETER Domain
-Specifies the domain to use for the query.
+Specifies the domain to use for the query and creating outputdirectory.
 
 .PARAMETER Server
 Specifies an Active Directory server IP to bind to, e.g. 10.0.0.1
@@ -1727,7 +1738,7 @@ Optional Dependencies: None
 Checks users and computers for all types of delegation.
 
 .PARAMETER Domain
-Specifies the domain to use for the query.
+Specifies the domain to use for the query and creating outputdirectory.
 
 .PARAMETER Server
 Specifies an Active Directory server IP to bind to, e.g. 10.0.0.1
@@ -1870,7 +1881,7 @@ Optional Dependencies: None
 Checks for user attributes which might decrease the security of a user their account.
 
 .PARAMETER Domain
-Specifies the domain to use for the query.
+Specifies the domain to use for the query and creating outputdirectory.
 
 .PARAMETER Server
 Specifies an Active Directory server IP to bind to, e.g. 10.0.0.1
@@ -2060,7 +2071,7 @@ Optional Dependencies: None
 Checks for computerobjects which are registered with an old operating system or a windows 10 version which is EOL.
 
 .PARAMETER Domain
-Specifies the domain to use for the query.
+Specifies the domain to use for the query and creating outputdirectory.
 
 .PARAMETER Server
 Specifies an Active Directory server IP to bind to, e.g. 10.0.0.1
@@ -2169,7 +2180,7 @@ Optional Dependencies: None
 Checks for computerobjects which are registered with an old operating system or a windows 10 version which is EOL.
 
 .PARAMETER Domain
-Specifies the domain to use for the query.
+Specifies the domain to use for the query and creating outputdirectory.
 
 .PARAMETER Server
 Specifies an Active Directory server IP to bind to, e.g. 10.0.0.1
@@ -2268,7 +2279,7 @@ Optional Dependencies: None
 Multiple checks for privileged users and groups. Are all privileged users part of the protected users group or do they have the "This account is sensitive and cannot be delegated" flag. Are people member of the high privileged built in operator groups? And are computers member of the domain admin group?
 
 .PARAMETER Domain
-Specifies the domain to use for the query.
+Specifies the domain to use for the query and creating outputdirectory.
 
 .PARAMETER Server
 Specifies an Active Directory server IP to bind to, e.g. 10.0.0.1
@@ -2444,7 +2455,7 @@ Optional Dependencies: None
 Check who can join computers to the domain. By default the "Authenticated users group" is able to join computers to the domain.
 
 .PARAMETER Domain
-Specifies the domain to use for the query.
+Specifies the domain to use for the query and creating outputdirectory.
 
 .PARAMETER Server
 Specifies an Active Directory server IP to bind to, e.g. 10.0.0.1
@@ -2556,7 +2567,7 @@ Optional Dependencies: None
 Check which computers are reachable from the current machine with Get-NetConnection (ping).
 
 .PARAMETER Domain
-Specifies the domain to use for the query.
+Specifies the domain to use for the query and creating outputdirectory.
 
 .PARAMETER Server
 Specifies an Active Directory server IP to bind to, e.g. 10.0.0.1
@@ -2625,7 +2636,8 @@ Invoke-ADCheckReachableComputers -Domain 'contoso.com' -Server 'dc1.contoso.com'
 			$data = $data -replace 'dnshostname', '' -replace '-----------', '' #remove strings
 			$data = $data.Trim() | ? {$_.trim() -ne "" } #Remove spaces and white lines
 			$data = $data | Sort-Object -Unique
-			$data | Out-File -Encoding utf8 $file
+			echo " " | Out-File -Encoding utf8 $file
+			$data | Out-File -Encoding utf8 $file -Append
 		}
 		else {
 			Write-Host -ForegroundColor Red "[+] There are no reachable computers, probably something wrong with DNS"
@@ -2644,7 +2656,7 @@ Optional Dependencies: None
 Mounts the sysvol and checks for the string password in all policies.
 
 .PARAMETER Domain
-Specifies the domain to use for the query.
+Specifies the domain to use for the query and creating outputdirectory.
 
 .PARAMETER Server
 Specifies an Active Directory server IP to bind to, e.g. 10.0.0.1
@@ -2734,7 +2746,7 @@ Optional Dependencies: None
 Mounts the netlogon share and checks for the string password in all files.
 
 .PARAMETER Domain
-Specifies the domain to use for the query.
+Specifies the domain to use for the query and creating outputdirectory.
 
 .PARAMETER Server
 Specifies an Active Directory server IP to bind to, e.g. 10.0.0.1
@@ -2797,13 +2809,13 @@ Invoke-ADCheckNetlogonPassword -Domain 'contoso.com' -Server 'dc1.contoso.com' -
 	ForEach ($dc in $data){
 		$name = $dc.name
 		$hostname = $dc.dnshostname
-		Write-Host "[+] Checking SYSVOL of $name"
+		Write-Host "[+] Checking NETLOGON of $name"
 		$MountName = "$name" + "-netlogon"
 		New-PSDrive -Name "$MountName" -PSProvider FileSystem -Root \\$hostname\NETLOGON -Credential $Creds | out-null
-		$data = Get-ChildItem -Recurse -Path \\$hostname\NETLOGON\* -ErrorAction silentlycontinue | Select-String -Pattern "password"
+		$data = Get-ChildItem -Recurse -Path \\$hostname\NETLOGON\* -ErrorAction silentlycontinue | Select-String -Pattern "pass"
 		if ($data){ 
 			$count = $data | Measure-Object | Select-Object -expand Count
-			Write-Host -ForegroundColor Yellow "[-] There might be $count passwords in the NETLOGON of $name. Please manually check"
+			Write-Host -ForegroundColor Yellow "[-] There might be $count passwords(string pass) in the NETLOGON of $name. Please manually check"
 			Write-Host "Writing to $file"
 			$data | Add-Content $file
 		}
@@ -2818,14 +2830,14 @@ Function Invoke-ADCheckSMB {
 <#
 .SYNOPSIS
 Author: Jony Schats - 0xjs
-Required Dependencies: Invoke-ADCheckReachableComputers, 
+Required Dependencies: Invoke-ADCheckReachableComputers
 Optional Dependencies: None
 
 .DESCRIPTION
 Run crackmapexec with the provided credentials against all reachable computers within the domain and enumerate shares. Save the output which is getting parsed to find hosts with SMBv1 enabled, Signing false and creatte a list of all readable and writeable shares.
 
 .PARAMETER Domain
-Specifies the domain to use for the query.
+Specifies the domain to use for the query and creating outputdirectory.
 
 .PARAMETER Server
 Specifies an Active Directory server IP to bind to, e.g. 10.0.0.1
@@ -2876,15 +2888,14 @@ Invoke-ADCheckSMB -Domain 'contoso.com' -Server 'dc1.contoso.com' -User '0xjs' -
 		}
 	}
 	
-	if ($User -ne $Creds.Username) {
-		Create-CredentialObject -User $User -Password $Password
+	if (-not(Test-Path -Path $data_path\computers_accessible.txt)) {
+		Invoke-ADCheckReachableComputers -Domain $Domain -Server $Server -User $User -Password $Password
 	}
-	
-	Invoke-ADCheckReachableComputers -Domain $Domain -Server $Server -User $User -Password $Password
 	
 	# Collecting SMB data and shares with crackmapexec
 	Write-Host "---Running crackmapexec against each reachable host enumerating SMB data and shares---"
-	$data = crackmapexec smb $data_path\computers_accessible.txt -d $Domain -u $User -p $Password --shares 2> null
+	Write-Host -ForeGroundColor yellow "[+] Crackmapexec will hang and needs a enter to continue"
+	$data = python.exe $CME_Path smb $data_path\computers_accessible.txt -d $Domain -u $User -p $Password --shares 2> null
 	$file = "$data_path\crackmapexec_reachablecomputers.txt"
 	if ($data){ 
 			Write-Host "[W] Writing to $file"
@@ -2968,6 +2979,385 @@ Invoke-ADCheckSMB -Domain 'contoso.com' -Server 'dc1.contoso.com' -User '0xjs' -
 	}
 }
 
+Function Invoke-ADCheckPrintspoolerDC {
+<#
+.SYNOPSIS
+Author: Jony Schats - 0xjs
+Required Dependencies: None 
+Optional Dependencies: None
 
+.DESCRIPTION
+Check if the printspooler service is running on each DC in the domain.
 
-# Find Exchange servers in the domain Get-DomainGroupMember "Exchange Trusted Subsystem" -Domain $Domain -Server $Server -Credential $Creds  | select MemberName
+.PARAMETER Domain
+Specifies the domain to use for the query and creating outputdirectory.
+
+.PARAMETER Server
+Specifies an Active Directory server IP to bind to, e.g. 10.0.0.1
+
+.PARAMETER User
+Specifies the username to use for the query.
+
+.PARAMETER Password
+Specifies the Password in combination with the username to use for the query.
+
+.PARAMETER OutputDirectory
+Specifies the path to use for the output directory, defaults to the current directory.
+
+.EXAMPLE
+Invoke-ADCheckPrintspoolerDC -Domain 'contoso.com' -Server 'dc1.contoso.com' -User '0xjs' -Password 'Password01!'
+#>
+
+	#Parameters
+	[CmdletBinding()]
+	Param(
+		[Parameter(Mandatory=$true,HelpMessage="Enter a domain name here, e.g. contoso.com")]
+		[ValidateNotNullOrEmpty()]
+		[string]$Domain,
+		
+		[Parameter(Mandatory=$true,HelpMessage="Enter a IP of a domain controller here, e.g. 10.0.0.1")]
+		[ValidateNotNullOrEmpty()]
+		[string]$Server,
+		
+		[Parameter(Mandatory=$true,HelpMessage="Enter the username to connect with")]
+		[ValidateNotNullOrEmpty()]
+		[string]$User,
+		
+		[Parameter(Mandatory=$true,HelpMessage="Enter the password of the user")]
+		[ValidateNotNullOrEmpty()]
+		[string]$Password,
+		
+		[Parameter(Mandatory=$false)]
+		[ValidateNotNullOrEmpty()]
+		[string]$OutputDirectory
+	)
+
+	if ($User -ne $Creds.Username) {
+		Create-CredentialObject -User $User -Password $Password
+	}	
+
+	if ($OutputDirectoryCreated -ne $true) {
+		if ($PSBoundParameters['OutputDirectory']) {
+			New-OutputDirectory -Domain $Domain -OutputDirectory $OutputDirectory
+			}
+			else {
+				New-OutputDirectory -Domain $Domain
+		}
+	}
+	
+	Write-Host "---Checking printspooler service on each DC---"
+	$file = "$findings_path\printspooler_domaincontrollers.txt"
+	$data = Get-DomainController -Domain $Domain -Server $Server -Credential $Creds
+	ForEach ($dc in $data){
+		$name = $dc.name
+		$hostname = $dc.dnshostname
+		$data = python $impacket_path\examples\rpcdump.py $hostname | Select-String -Pattern '(MS-RPRN|MS-PAR)'
+		if ($data){ 
+			Write-Host -ForegroundColor Red "[-] Printspooler enabled on $name"
+			Write-Host "Writing to $file"
+			echo $name | Add-Content $file
+			$data | Add-Content $file
+			echo " " | Add-Content $file
+		}
+		else {
+			Write-Host -ForegroundColor DarkGreen "[+] Printspooler disabled on $name"
+		}
+	}
+	Write-Host " "
+}
+
+Function Invoke-ADCheckExchange {
+<#
+.SYNOPSIS
+Author: Jony Schats - 0xjs
+Required Dependencies: None 
+Optional Dependencies: None
+
+.DESCRIPTION
+Checks if Exchange is installed within the domain and if there is an Exchange Server. (System part of Exchange Trusted Subsystem)
+
+.PARAMETER Domain
+Specifies the domain to use for the query and creating outputdirectory.
+
+.PARAMETER Server
+Specifies an Active Directory server IP to bind to, e.g. 10.0.0.1
+
+.PARAMETER User
+Specifies the username to use for the query.
+
+.PARAMETER Password
+Specifies the Password in combination with the username to use for the query.
+
+.PARAMETER OutputDirectory
+Specifies the path to use for the output directory, defaults to the current directory.
+
+.EXAMPLE
+Invoke-ADCheckExchange -Domain 'contoso.com' -Server 'dc1.contoso.com' -User '0xjs' -Password 'Password01!'
+#>
+
+	#Parameters
+	[CmdletBinding()]
+	Param(
+		[Parameter(Mandatory=$true,HelpMessage="Enter a domain name here, e.g. contoso.com")]
+		[ValidateNotNullOrEmpty()]
+		[string]$Domain,
+		
+		[Parameter(Mandatory=$true,HelpMessage="Enter a IP of a domain controller here, e.g. 10.0.0.1")]
+		[ValidateNotNullOrEmpty()]
+		[string]$Server,
+		
+		[Parameter(Mandatory=$true,HelpMessage="Enter the username to connect with")]
+		[ValidateNotNullOrEmpty()]
+		[string]$User,
+		
+		[Parameter(Mandatory=$true,HelpMessage="Enter the password of the user")]
+		[ValidateNotNullOrEmpty()]
+		[string]$Password,
+		
+		[Parameter(Mandatory=$false)]
+		[ValidateNotNullOrEmpty()]
+		[string]$OutputDirectory
+	)
+
+	if ($User -ne $Creds.Username) {
+		Create-CredentialObject -User $User -Password $Password
+	}	
+
+	if ($OutputDirectoryCreated -ne $true) {
+		if ($PSBoundParameters['OutputDirectory']) {
+			New-OutputDirectory -Domain $Domain -OutputDirectory $OutputDirectory
+			}
+			else {
+				New-OutputDirectory -Domain $Domain
+		}
+	}
+	
+	Write-Host "---Checking if exchange is used within the domain---"
+	$file = "$data_path\Exchangegroups.txt"
+	$data = Get-DomainGroup -Domain $Domain -Server $Server -Credential $Creds | Select-Object samaccountname | Where-Object samaccountname -Match Exchange
+	if ($data){ 	
+			Write-Host -ForegroundColor Yellow "[+] Exchange server groups exist"
+			Write-Host "[W] Writing to $file"
+			$data | Out-File $file
+			
+			$file = "$data_path\Exchangeservers.txt"
+			$data = Get-DomainGroupMember "Exchange Trusted Subsystem" -Domain $Domain -Server $Server -Credential $Creds | Get-DomainComputer -Domain $Domain -Server $Server -Credential $Creds | Select-Object samaccountname, lastlogon | Sort-Object -Property lastlogon -Descending
+			if ($data){ 	
+					Write-Host -ForegroundColor Yellow "[+] Exchange servers exist please manually check for access/open mailboxes with OWA or Mailsniper"
+					Write-Host "[W] Writing to $file"
+					$data | Out-File $file
+				}
+				else {
+					Write-Host -ForegroundColor DarkGreen "[+] No group Exchange Trusted Subsystem, probably no on-prem Exchange Server"
+				}
+			Write-Host " "
+			
+		}
+		else {
+			Write-Host -ForegroundColor DarkGreen "[+] No Exchange groups exist"
+		}
+	Write-Host " "
+}
+
+Function Invoke-ADCheckWebclient {
+<#
+.SYNOPSIS
+Author: Jony Schats - 0xjs
+Required Dependencies: Invoke-ADCheckReachableComputers 
+Optional Dependencies: None
+
+.DESCRIPTION
+Check if the webclient service is running on all reachable computers.
+
+.PARAMETER Domain
+Specifies the domain to use for the query and creating outputdirectory.
+
+.PARAMETER Server
+Specifies an Active Directory server IP to bind to, e.g. 10.0.0.1
+
+.PARAMETER User
+Specifies the username to use for the query.
+
+.PARAMETER Password
+Specifies the Password in combination with the username to use for the query.
+
+.PARAMETER OutputDirectory
+Specifies the path to use for the output directory, defaults to the current directory.
+
+.EXAMPLE
+Invoke-ADCheckWebclient -Domain 'contoso.com' -Server 'dc1.contoso.com' -User '0xjs' -Password 'Password01!'
+#>
+
+	#Parameters
+	[CmdletBinding()]
+	Param(
+		[Parameter(Mandatory=$true,HelpMessage="Enter a domain name here, e.g. contoso.com")]
+		[ValidateNotNullOrEmpty()]
+		[string]$Domain,
+		
+		[Parameter(Mandatory=$true,HelpMessage="Enter a IP of a domain controller here, e.g. 10.0.0.1")]
+		[ValidateNotNullOrEmpty()]
+		[string]$Server,
+		
+		[Parameter(Mandatory=$true,HelpMessage="Enter the username to connect with")]
+		[ValidateNotNullOrEmpty()]
+		[string]$User,
+		
+		[Parameter(Mandatory=$true,HelpMessage="Enter the password of the user")]
+		[ValidateNotNullOrEmpty()]
+		[string]$Password,
+		
+		[Parameter(Mandatory=$false)]
+		[ValidateNotNullOrEmpty()]
+		[string]$OutputDirectory
+	)
+
+	if ($User -ne $Creds.Username) {
+		Create-CredentialObject -User $User -Password $Password
+	}	
+
+	if ($OutputDirectoryCreated -ne $true) {
+		if ($PSBoundParameters['OutputDirectory']) {
+			New-OutputDirectory -Domain $Domain -OutputDirectory $OutputDirectory
+			}
+			else {
+				New-OutputDirectory -Domain $Domain
+		}
+	}
+	
+	if (-not(Test-Path -Path $data_path\computers_accessible.txt)) {
+		Invoke-ADCheckReachableComputers -Domain $Domain -Server $Server -User $User -Password $Password
+	}
+	
+	Write-Host "---Running crackmapexec against each reachable host enumerating webclient service---"
+	Write-Host -ForeGroundColor yellow "[+] Crackmapexec will hang and needs a enter to continue"
+	$data = python.exe $CME_Path smb $data_path\computers_accessible.txt -d $Domain -u $User -p $Password -M webdav | Select-String "WebClient Service enabled on"
+	
+	if ($data){
+		# Writing all data to file
+		$file = "$data_path\crackmapexec_webdav.txt"
+		Write-Host "[W] Writing all data to $file"
+		$data = $data -replace '\x1b\[[0-9;]*m'
+		$data | Out-File -Encoding utf8 $file	
+		Write-Host " "
+		
+		# Writing hostnames to findings file
+		$file = "$findings_path\computers_webdav.txt"
+		$count = $data | Measure-Object | Select-Object -expand Count
+		Write-Host -ForegroundColor Red "[+] There are $count systems with the webclient service running"
+		Write-Host "[W] Writing to $file"
+		# Remove the colors from the data
+		$data1 = foreach ($line in $data) {$line.split(":",2)[1]}
+		$data1 = $data1.Trim() | ? {$_.trim() -ne "" } #Remove spaces and white lines
+		$data1 | Out-File -Encoding utf8 $file
+		Write-Host " "
+	}
+	else {
+		Write-Host -ForegroundColor DarkGreen "[+] There are no systems with the webclient service running"
+	}
+}
+
+Function Invoke-ADCheckLDAP {
+<#
+.SYNOPSIS
+Author: Jony Schats - 0xjs
+Required Dependencies: Invoke-ADCheckReachableComputers 
+Optional Dependencies: None
+
+.DESCRIPTION
+Runs LdapRelayScan and checks if LDAP signing and LDAPS binding is required.
+
+.PARAMETER Server
+Specifies an Active Directory server IP to bind to, e.g. 10.0.0.1
+
+.PARAMETER Domain
+Specifies the domain to use for the query and creating outputdirectory.
+
+.PARAMETER User
+Specifies the username to use for the query.
+
+.PARAMETER Password
+Specifies the Password in combination with the username to use for the query.
+
+.PARAMETER OutputDirectory
+Specifies the path to use for the output directory, defaults to the current directory.
+
+.EXAMPLE
+Invoke-ADCheckLDAP -Server 'dc1.contoso.com' -User '0xjs' -Password 'Password01!'
+#>
+
+	#Parameters
+	[CmdletBinding()]
+	Param(
+		[Parameter(Mandatory=$true,HelpMessage="Enter a domain name here, e.g. contoso.com")]
+		[ValidateNotNullOrEmpty()]
+		[string]$Domain,
+		
+		[Parameter(Mandatory=$true,HelpMessage="Enter a IP of a domain controller here, e.g. 10.0.0.1")]
+		[ValidateNotNullOrEmpty()]
+		[string]$Server,
+		
+		[Parameter(Mandatory=$true,HelpMessage="Enter the username to connect with")]
+		[ValidateNotNullOrEmpty()]
+		[string]$User,
+		
+		[Parameter(Mandatory=$true,HelpMessage="Enter the password of the user")]
+		[ValidateNotNullOrEmpty()]
+		[string]$Password,
+		
+		[Parameter(Mandatory=$false)]
+		[ValidateNotNullOrEmpty()]
+		[string]$OutputDirectory
+	)
+
+	if ($OutputDirectoryCreated -ne $true) {
+		if ($PSBoundParameters['OutputDirectory']) {
+			New-OutputDirectory -Domain $Domain -OutputDirectory $OutputDirectory
+			}
+			else {
+				New-OutputDirectory -Domain $Domain
+		}
+	}
+	
+	Write-Host "---Running LdapRelayScan---"
+	$data = python.exe $LdapRelayScan_Path -m BOTH -dc-ip $Server -u $User -p $Password 2>null
+	$file = "$data_path\domaincontrollers_ldaprelayscan.txt"
+	Write-Host "[W] Writing to $file"
+	$data | Out-File -Encoding utf8 $file
+	Write-Host " "
+	
+	Write-Host "---Checking for LDAP signing---"
+	if ($data -Match "SERVER SIGNING REQUIREMENTS NOT ENFORCED!"){
+		$file = "$findings_path\domaincontrollers_no_ldap_signing.txt"
+		Write-Host -ForegroundColor Red "[+] One or more domain controller(s) does not require LDAP signing"
+		Write-Host "[W] Writing to $file"
+		$data | Out-File -Encoding utf8 $file
+	}
+	elseif ($data -Match "server enforcing signing requirements") {
+		Write-Host -ForegroundColor DarkGreen "[+] The domain controller(s) enforces LDAP signing"
+	}
+	else {
+		Write-Hoost -ForeGroundColor Yellow "[-] Something went wrong please manually check"
+	}
+	Write-Host " "
+	
+	Write-Host "---Checking for LDAPS binding---"
+	if ($data -Match 'CHANNEL BINDING SET TO "NEVER"! PARTY TIME!'){
+		$file = "$findings_path\domaincontrollers_no_ldaps_binding.txt"
+		Write-Host -ForegroundColor Red "[+] One or more domain controller(s) does not require LDAPS binding"
+		Write-Host "[W] Writing to $file"
+		$data | Out-File -Encoding utf8 $file
+	}
+	elseif ($data -Match 'binding set to "required", no fun allowed') {
+		$file = "$data_path\domaincontrollers_ldaprelayscan.txt"
+		Write-Host -ForegroundColor DarkGreen "[+] The domain controller(s) enforces LDAPS binding"
+	}
+	elseif ($data -Match 'Unexpected error during LDAPS handshake') {
+		Write-Host -ForegroundColor Yellow "[-] LDAPS not (properly) configured"
+	}
+	else {
+		Write-Hoost -ForeGroundColor Yellow "[-] Something went wrong please manually check"
+	}
+	Write-Host " "
+}
+
