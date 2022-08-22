@@ -20,13 +20,28 @@ $script:CME_Path = "$PSScriptRoot\import\cme"
 $script:LdapRelayScan_Path = "$PSScriptRoot\import\LdapRelayScan\LdapRelayScan.py"
 ```
 
-## Running the tool and execute all checks
+## Running domain_audit
 - Start PowerShell as Administrator
     - This is required to change the DNS server to DC IP and add domain to hosts file. Otherwise some checks/executions will fail such as Impacket.
+
+#### Run all checks
 ```
-Invoke-ADCheckAll -User <USER> -Password <PASSWORD> -Domain <DOMAIN> -Server <DC IP>
+PS C:\Users\user\Desktop> . C:\Tools\domain_audit\domain_audit.ps1
+PS C:\Users\user\Desktop> Invoke-ADCheckAll -Domain "amsterdam.bank.local" -User "john" -Password "Welcome2022!" -Server 10.0.0.3
 ```
 - Example output at the bottom of the page.
+
+#### Set dns and host file
+```
+Invoke-ChangeDNS -Server 10.0.0.3 -Domain "amsterdam.bank.local"
+```
+
+#### Run a specific check
+```
+Invoke-ADEnum -Domain "amsterdam.bank.local" -User "john" -Password "Welcome2022!" -Server 10.0.0.3
+Invoke-ADEnumTrust -Domain "amsterdam.bank.local" -User "john" -Password "Welcome2022!" -Server 10.0.0.3
+Invoke-ADCheckSQL -Domain "amsterdam.bank.local" -User "john" -Password "Welcome2022!" -Server 10.0.0.3
+```
 
 ## Output
 The tool will create a directory with the domain name and date on current directory or in the supplied location. In this directory there are three directories:
@@ -100,36 +115,38 @@ Invoke-ADCheckAll will execute the following in order:
     - Check what the ms-ds-machineaccountqouta is, if it is null(good) or not-set(bad) or another value.
 - Check for passwords in the sysvol
 - Check for passwords in netlogon (scripts, programs etc)
+- Check if printspooler service is running on the DC
+- Check if LDAP signing is enabled, if LDAPS is configured and LDAPS binding is enabled
+- Check if Exchange groups exists within the domain and if there is an Exchange server
 - Check for accessible machines
-- Checks for SMB
+- Checks for SMB on accessible machines
     - Check SMBv1
     - Check signing requirement
     - Check for readable shares
     - Check for writable shares
+- Check if the webservice client is running on accessible machines
 
 ## TO-DO
-- Checks for exchange servers in the domain and checks with (mailsniper)? If that is possible.
-- Check for signing and binding LDAPS port on DC's. (Ldaprelayscan but its kinda broken)
 - Add checks for kerberos password policy?
-- Check if printspooler is enabled on DC's
-- Check if webdav is active on reachable computers
 - Check for admin count on users or groups which are no longer admin
 - Add SQL query to retrieve databases of accessible SQL servers
 - Find a way to audit all ACL's (Invoke-ACLScanner doesnt work well from non domain joined perspective)
 - Add ADCS checks, but need to set this up in a LAB environment first.
 - Split invoke-sqlaudit into seperate checks
 - Add function to skip dns change
-- Fix dependancy options
+- Add dependancy options to each function
 
 ## Example output Invoke-ADCheckAll
 ```
-PS C:\Tools\domain_audit> Invoke-ADCheckAll -Domain "amsterdam.bank.local" -User "john" -Password "Welcome2022!" -Server 10.0.0.3
+PS C:\Users\user\Desktop> . C:\Tools\domain_audit\domain_audit.ps1
+PS C:\Users\user\Desktop> Invoke-ADCheckAll -Domain "amsterdam.bank.local" -User "john" -Password "Welcome2022!" -Server 10.0.0.3
+
 [+] Running as administrator, changing DNS to 10.0.0.3 and adding 10.0.0.3 amsterdam.bank.local to host file
 [+] AD Authentication for amsterdam.bank.local\john succeeded!
-[+] Output will be written in C:\Tools\domain_audit\amsterdam.bank.local-2022-07-19
+[+] Output will be written in C:\Users\user\Desktop\amsterdam.bank.local-2022-08-22
 
 ---------- DATA EXPLAINED ----------
-- All data is written to C:\Tools\domain_audit\amsterdam.bank.local-2022-07-19\
+- All data is written to C:\Users\user\Desktop\amsterdam.bank.local-2022-08-22\
 - In this folder are three subfolders
 - files in \findings\ are findings that should be reported
 - files in \checks\ needs to be checked
@@ -146,35 +163,37 @@ Dark Red means finding
 [+] Gathering BloodHound data all, session and ACL in seperate PowerShell session in background
 
 ---------- BASIC ENUMERATION ----------
-[W] Saving a list of all users to C:\Tools\domain_audit\amsterdam.bank.local-2022-07-19\data\list_users.txt
-[W] Saving a list of all enabled users to C:\Tools\domain_audit\amsterdam.bank.local-2022-07-19\data\list_users_enabled.txt
-[W] Saving a list of all administrators to C:\Tools\domain_audit\amsterdam.bank.local-2022-07-19\data\list_administrators.txt
-[W] Saving a list of all groups to C:\Tools\domain_audit\amsterdam.bank.local-2022-07-19\data\list_groups.txt
-[W] Saving a list of all computerobjects to C:\Tools\domain_audit\amsterdam.bank.local-2022-07-19\data\list_computers.txt
+[W] Saving a list of all users to C:\Users\user\Desktop\amsterdam.bank.local-2022-08-22\data\list_users.txt
+[W] Saving a list of all enabled users to C:\Users\user\Desktop\amsterdam.bank.local-2022-08-22\data\list_users_enabled.txt
+[W] Saving a list of all administrators to C:\Users\user\Desktop\amsterdam.bank.local-2022-08-22\data\list_administrators.txt
+[W] Saving a list of all groups to C:\Users\user\Desktop\amsterdam.bank.local-2022-08-22\data\list_groups.txt
+[W] Saving a list of all computerobjects to C:\Users\user\Desktop\amsterdam.bank.local-2022-08-22\data\list_computers.txt
 
 ---------- DOMAIN INFORMATION ----------
+The domain functional level is: Windows 2016
 In the domain amsterdam.bank.local there are:
 - 27 users and 25 enabled users
-- 50 groups
+- 51 groups
 - 4 computers
-- 3 OU's
+- 4 OU's
 - 2 GPO's
 - 3 Administrators
+- 1 Domain Controllers
 
 ---Checking if amount of admins is more then 5% of all users---
 [-] There are 3 administrators, which is 11.11% of all users
-[W] Writing to C:\Tools\domain_audit\amsterdam.bank.local-2022-07-19\findings\large_amount_of_administrators.txt
+[W] Writing to C:\Users\user\Desktop\amsterdam.bank.local-2022-08-22\findings\large_amount_of_administrators.txt
 
 ---------- ENUMERATING DOMAIN TRUSTS ----------
 [+] The domain amsterdam.bank.local trusts 1 domains which are:
 bank.local
-[W] Writing to C:\Tools\domain_audit\amsterdam.bank.local-2022-07-19\data\trusts.txt
+[W] Writing to C:\Users\user\Desktop\amsterdam.bank.local-2022-08-22\data\trusts.txt
 
 [+] The trust for domain bank.local is WITHIN_FOREST, enumerating trusts
 [+] The domain bank.local trusts 2 domains which are:
 amsterdam.bank.local
 secure.local
-[W] Writing to C:\Tools\domain_audit\amsterdam.bank.local-2022-07-19\data\trusts.txt
+[W] Writing to C:\Users\user\Desktop\amsterdam.bank.local-2022-08-22\data\trusts.txt
 
 ---Checking if AzureAD connect is in use---
 [+] AzureAD connect is not installed
@@ -187,7 +206,7 @@ secure.local
 [+] Pleace manually supply the Password Welcome2022!
 --- Running SQL checks in new window ---
 Enter the password for amsterdam.bank.local\john:
-Attempting to start powershell.exe -Exec bypass -NoExit Import-Module C:\Tools\domain_audit\domain_audit.ps1; Set-Variable Findings_Path -Value C:\Tools\domain_audit\amsterdam.bank.local-2022-07-19\findings; Set-Variable Data_Path -Value C:\Tools\domain_audit\amsterdam.bank.local-2022-07-19\data; Set-Variable Checks_Path -Value C:\Tools\domain_audit\amsterdam.bank.local-2022-07-19\checks; Set-Variable OutputDirectoryCreated -Value True; Invoke-ADCheckSQL -Domain amsterdam.bank.local -Server 10.0.0.3 -User john -Password Welcome2022! -SkipPrompt as user "amsterdam.bank.local\john" ...
+Attempting to start powershell.exe -Exec bypass -NoExit Import-Module C:\Tools\domain_audit\domain_audit.ps1; Set-Variable Findings_Path -Value C:\Users\user\Desktop\amsterdam.bank.local-2022-08-22\findings; Set-Variable Data_Path -Value C:\Users\user\Desktop\amsterdam.bank.local-2022-08-22\data; Set-Variable Checks_Path -Value C:\Users\user\Desktop\amsterdam.bank.local-2022-08-22\checks; Set-Variable OutputDirectoryCreated -Value True; Invoke-ADCheckSQL -Domain amsterdam.bank.local -Server 10.0.0.3 -User john -Password Welcome2022! -SkipPrompt as user "amsterdam.bank.local\john" ...
 
 ---Checking password policy---
 [+] Passwordpolicy contains ClearTextPassword=0. Domain controller does not save passwords in cleartext
@@ -196,68 +215,71 @@ Attempting to start powershell.exe -Exec bypass -NoExit Import-Module C:\Tools\d
 [-] LockOutBadCount is 0, accounts wont be locked!
 [-] ResetLockoutCount is not set
 [-] LockoutDuration is not set
-Writing password policy to C:\Tools\domain_audit\amsterdam.bank.local-2022-07-19\findings\passwordpolicy.txt
+Writing password policy to C:\Users\user\Desktop\amsterdam.bank.local-2022-08-22\findings\passwordpolicy.txt
 
 ---Checking if there is a GPO with LAPS---
 [-] There is no GPO with LAPS in their name
 
 ---Checking if LAPS is enabled on any computerobject---
 [-] There are no systems where LAPS is enabled
-[W] Writing to C:\Tools\domain_audit\amsterdam.bank.local-2022-07-19\findings\laps_notenabled.txt
+[W] Writing to C:\Users\user\Desktop\amsterdam.bank.local-2022-08-22\findings\laps_notenabled.txt
 
 ---Checking description field for passwords---
 [-] There are 4 users that have a description, please manually check for passwords!
-[W] Writing to C:\Tools\domain_audit\amsterdam.bank.local-2022-07-19\checks\description_users.txt
+[W] Writing to C:\Users\user\Desktop\amsterdam.bank.local-2022-08-22\checks\description_users.txt
 
 ---Checking groups description field for interesting information---
 [-] There are 45 groups that have a description, please manually check for passwords or interesting information!
-[W] Writing to C:\Tools\domain_audit\amsterdam.bank.local-2022-07-19\checks\description_groups.txt
+[W] Writing to C:\Users\user\Desktop\amsterdam.bank.local-2022-08-22\checks\description_groups.txt
 
 ---Checking computerobjects description field for interesting information---
 [+] There are no computerobjects with a description
 
 ---Checking kerberoastable administrators---
-[+] There are no kerberoastable administrators
+[-] There are 1 kerberoastable administrators
+[W] Writing to C:\Users\user\Desktop\amsterdam.bank.local-2022-08-22\findings\administrators_serviceprincipalname.txt
 
 ---Checking kerberoastable users---
-[-] There are 1 kerberoastable users
-[W] Writing to C:\Tools\domain_audit\amsterdam.bank.local-2022-07-19\findings\users_serviceprincipalname.txt
-[+] Requested 1 hashes, please crack with hashcat
-[W] Writing to C:\Tools\domain_audit\amsterdam.bank.local-2022-07-19\findings\users_kerberoast_hashes.txt
+[-] There are 2 kerberoastable users
+[W] Writing to C:\Users\user\Desktop\amsterdam.bank.local-2022-08-22\findings\users_serviceprincipalname.txt
+[+] Requested 2 hashes, please crack with hashcat
+[W] Writing to C:\Users\user\Desktop\amsterdam.bank.local-2022-08-22\findings\users_kerberoast_hashes.txt
 
 ---Checking if there are users with the DONT_REQ_PREAUTH attribute---
 [-] There are 2 users with the attribute DONT_REQ_PREAUTH
-[W] Writing to C:\Tools\domain_audit\amsterdam.bank.local-2022-07-19\findings\users_dontrequirepreath.txt
+[W] Writing to C:\Users\user\Desktop\amsterdam.bank.local-2022-08-22\findings\users_dontrequirepreath.txt
 [+] Requested 2 hashes, please crack with hashcat
-[W] Writing to C:\Tools\domain_audit\amsterdam.bank.local-2022-07-19\findings\users_aspreproast_hashes.txt
-
----Checking unconstrained delegation computerobjects, excluding domain-controllers---
-[+] There are no computerobjects with unconstrained delegation
+[W] Writing to C:\Users\user\Desktop\amsterdam.bank.local-2022-08-22\findings\users_aspreproast_hashes.txt
 
 ---Checking constrained delegation users---
 [-] There are 1 users that have constrained delegation enabled
-[W] Writing to C:\Tools\domain_audit\amsterdam.bank.local-2022-07-19\findings\users_constrained_delegation.txt
+[W] Writing to C:\Users\user\Desktop\amsterdam.bank.local-2022-08-22\findings\users_constrained_delegation.txt
+
+---Checking unconstrained delegation computerobjects, excluding domain-controllers---
+[-] There are 1 users that have unconstrained delegation enabled
+[W] Writing to C:\Users\user\Desktop\amsterdam.bank.local-2022-08-22\findings\users_unconstrained_delegation.txt
 
 ---Checking constrained delegation computerobjects---
 [+] There are no computerobjects with constrained delegation
 
+---Checking unconstrained delegation computerobjects, excluding domain-controllers---
+[-] There are 1 computerobjects that have unconstrained delegation enabled
+[W] Writing to C:\Users\user\Desktop\amsterdam.bank.local-2022-08-22\findings\computers_unconstrained_delegation.txt
+
 ---Checking resource based constrained delegation computerobjects---
-[-] There are 1 computerobjects that have resource based constrained delegation enabled
-[-] Sign of compromise?
-[W] Writing to C:\Tools\domain_audit\amsterdam.bank.local-2022-07-19\findings\computers_resource_based_constrained_delegation.txt
+[+] There are no computerobjects with resource based constrained delegation
 
 ---Checking if there are users with the PASSWD_NOTREQD attribute---
 [-] There are 2 users with the attribute PASSWD_NOTREQD
-[W] Writing to C:\Tools\domain_audit\amsterdam.bank.local-2022-07-19\findings\users_passwdnotreqd.txt
+[W] Writing to C:\Users\user\Desktop\amsterdam.bank.local-2022-08-22\findings\users_passwdnotreqd.txt
 
 ---Checking for users with empty password---
 [-] The password for user bank_dev is empty
-
 [-] The password for user steve is empty
 
 ---Checking if there are users with the DONT_EXPIRE_PASSWORD attribute---
-[-] There are 16 users with the attribute DONT_EXPIRE_PASSWORD
-[W] Writing to C:\Tools\domain_audit\amsterdam.bank.local-2022-07-19\findings\users_dontexpirepassword.txt
+[-] There are 17 users with the attribute DONT_EXPIRE_PASSWORD
+[W] Writing to C:\Users\user\Desktop\amsterdam.bank.local-2022-08-22\findings\users_dontexpirepassword.txt
 
 ---Checking if there are users with the reversible encryption---
 [+] There are no users with reversible encryption
@@ -285,11 +307,11 @@ Writing password policy to C:\Tools\domain_audit\amsterdam.bank.local-2022-07-19
 
 ---Checking if members of privileged groups are part of the protected users group---
 [-] There are 3 privileged users not part of the protected users group
-[W] Writing to C:\Tools\domain_audit\amsterdam.bank.local-2022-07-19\findings\administrators_notin_protectedusersgroup.txt
+[W] Writing to C:\Users\user\Desktop\amsterdam.bank.local-2022-08-22\findings\administrators_notin_protectedusersgroup.txt
 
 ---Checking if members of privileged groups have the flag 'this account is sensitive and cannot be delegated'---
 [-] There are 3 privileged users without the flag 'this account is sensitive and cannot be delegated' that aren't in the Protected Users group
-[W] Writing to C:\Tools\domain_audit\amsterdam.bank.local-2022-07-19\findings\administrators_delegation_flag.txt
+[W] Writing to C:\Users\user\Desktop\amsterdam.bank.local-2022-08-22\findings\administrators_delegation_flag.txt
 
 ---Checking if there are members in high privileged groups---
 [+] There are no users in the Account Operators group
@@ -298,33 +320,87 @@ Writing password policy to C:\Tools\domain_audit\amsterdam.bank.local-2022-07-19
 [+] There are no users in the DNS Admins group
 [+] There are no users in the Schema Admins group
 
----Checking if there is a computerobject part of a high privileged group---
+---Checking if there are computerobjects part ofhigh privileged groups---
 [+] There are no computerobjects part of a high privileged groups
 
 ---Checking who can add computerobjects to the domain---
 [-] The authenticated users group(S-1-5-11) can add 10 computerobjects to the domain
-[W] Writing to C:\Tools\domain_audit\amsterdam.bank.local-2022-07-19\findings\authenticated_users_can_join_domain.txt
-[W] Writing amount of computerobjects that can be joined to the domain by the object to C:\Tools\domain_audit\amsterdam.bank.local-2022-07-19\checks\can_join_domain_amount.txt
+[W] Writing to C:\Users\user\Desktop\amsterdam.bank.local-2022-08-22\findings\authenticated_users_can_join_domain.txt
+[W] Writing amount of computerobjects that can be joined to the domain by the object to C:\Users\user\Desktop\amsterdam.bank.local-2022-08-22\checks\can_join_domain_amount.txt
 
----Checking which machines are accessible from current machine through ping     ---
-[+] There are 3 computers which are accessible
-[W] Writing to C:\Tools\domain_audit\amsterdam.bank.local-2022-07-19\data\computers_accessible.txt
-```
+---Checking if there are passwords in the SYSVOL share---
+This might take a while
+[+] Checking SYSVOL of DC02
+[-] There might be 1 passwords in the SYSVOL of DC02. Please manually check
+Writing to C:\Users\user\Desktop\amsterdam.bank.local-2022-08-22\checks\sysvol_passwords.txt
 
-```
+---Checking if there are passwords in the NETLOGON share---
+This might take a while
+[+] Checking NETLOGON of DC02
+[-] There might be 1 passwords(string pass) in the NETLOGON of DC02. Please manually check
+Writing to C:\Users\user\Desktop\amsterdam.bank.local-2022-08-22\checks\netlogon_passwords.txt
+
+---Checking printspooler service on each DC---
+[-] Printspooler enabled on DC02
+Writing to C:\Users\user\Desktop\amsterdam.bank.local-2022-08-22\findings\printspooler_domaincontrollers.txt
+
+---Running LdapRelayScan---
+[W] Writing to C:\Users\user\Desktop\amsterdam.bank.local-2022-08-22\data\domaincontrollers_ldaprelayscan.txt
+
+---Checking for LDAP signing---
+[+] One or more domain controller(s) does not require LDAP signing
+[W] Writing to C:\Users\user\Desktop\amsterdam.bank.local-2022-08-22\findings\domaincontrollers_no_ldap_signing.txt
+
+---Checking for LDAPS binding---
+[+] One or more domain controller(s) does not require LDAPS binding
+[W] Writing to C:\Users\user\Desktop\amsterdam.bank.local-2022-08-22\findings\domaincontrollers_no_ldaps_binding.txt
+
+---Checking if exchange is used within the domain---
+[+] No Exchange groups exist
+
+---Checking which machines are reachable from current machine through ping---
+[+] There are 3 computers which are reachable
+[W] Writing to C:\Users\user\Desktop\amsterdam.bank.local-2022-08-22\data\computers_accessible.txt
+
+---Running crackmapexec against each reachable host enumerating SMB data and shares---
+[+] Crackmapexec will hang and needs a enter to continue
+[W] Writing to C:\Users\user\Desktop\amsterdam.bank.local-2022-08-22\data\crackmapexec_reachablecomputers.txt
+
+---Checking for hosts which have SMBV1 enabled---
+[+] There are no reachable computers which have SMBV1 enabled (SMBv1:True)
+
+---Checking for hosts without signing---
+[+] There are 2 reachable computers which does not require signing (Signing:False)
+[W] Writing to C:\Users\user\Desktop\amsterdam.bank.local-2022-08-22\findings\computers_nosigning.txt
+
+---Checking for shares with READ access---
+[+] There are 4 shares the current user can READ
+[W] Writing to C:\Users\user\Desktop\amsterdam.bank.local-2022-08-22\data\shares_read_access.txt
+
+---Checking for shares with WRITE access---
+[+] There are 1 shares the current user can WRITE to
+[W] Writing to C:\Users\user\Desktop\amsterdam.bank.local-2022-08-22\data\shares_write_access.txt
+
+---Running crackmapexec against each reachable host enumerating webclient service---
+[+] Crackmapexec will hang and needs a enter to continue
+[W] Writing all data to C:\Users\user\Desktop\amsterdam.bank.local-2022-08-22\data\crackmapexec_webdav.txt
+
+[+] There are 1 systems with the webclient service running
+[W] Writing to C:\Users\user\Desktop\amsterdam.bank.local-2022-08-22\findings\computers_webdav.txt
+
 ---------- EXECUTING SQL CHECKS ----------
 ---Checking MSSQL instances---
 [+] Found 1 MSSQL instances
 [+] Checking connection to each MSSQL instance
 [-] The current user can access 1 MSSQL instances
-[W] Writing to C:\Tools\domain_audit\amsterdam.bank.local-2022-07-30\findings\SQLserver_user_has_access.txt
+[W] Writing to C:\Users\user\Desktop\amsterdam.bank.local-2022-08-22\findings\SQLserver_user_has_access.txt
 
 ---Checking if the user is sysadmin on the accessible instances---
 [+] The current user is not sysdmin to any SQL instances
 
 ---Checking database links for sysadmin security context---
 [-] There are 1 links which run under the security context of a sysadmin user
-[W] Writing to C:\Tools\domain_audit\amsterdam.bank.local-2022-07-30\findings\SQLserver_sysadmin_on_links.txt
+[W] Writing to C:\Users\user\Desktop\amsterdam.bank.local-2022-08-22\findings\SQLserver_sysadmin_on_links.txt
 
 ---Running Invoke-SQLAudit on the accessible instances---
 This might take a while
@@ -332,7 +408,7 @@ VERBOSE: WEB01.amsterdam.bank.local : No named instance found.
 VERBOSE: WEB01.amsterdam.bank.local : Connection Success.
 VERBOSE: WEB01.amsterdam.bank.local : Checking for autoexec stored procedures...
 [-] Invoke-SQLAudit found 7 issues
-[W] Writing to C:\Tools\domain_audit\amsterdam.bank.local-2022-07-30\findings\SQLserver_sqlaudit.txt
+[W] Writing to C:\Users\user\Desktop\amsterdam.bank.local-2022-08-22\findings\SQLserver_sqlaudit.txt
 ```
 
 ![image](https://user-images.githubusercontent.com/43987245/179800219-f087ba71-7d87-4a03-8f02-f5833b6a0289.png)
