@@ -3157,19 +3157,19 @@ Invoke-ADCheckExchange -Domain 'contoso.com' -Server 'dc1.contoso.com' -User '0x
 	$file = "$data_path\Exchangegroups.txt"
 	$data = Get-DomainGroup -Domain $Domain -Server $Server -Credential $Creds | Select-Object samaccountname | Where-Object samaccountname -Match Exchange
 	if ($data){ 	
-			Write-Host -ForegroundColor Yellow "[+] Exchange server groups exist"
+			Write-Host -ForegroundColor Yellow "[+] Groups with *Exchange* in their name exist"
 			Write-Host "[W] Writing to $file"
 			$data | Out-File $file
 			
 			$file = "$data_path\Exchangeservers.txt"
 			$data = Get-DomainGroupMember "Exchange Trusted Subsystem" -Domain $Domain -Server $Server -Credential $Creds | Get-DomainComputer -Domain $Domain -Server $Server -Credential $Creds | Select-Object samaccountname, lastlogon | Sort-Object -Property lastlogon -Descending
 			if ($data){ 	
-					Write-Host -ForegroundColor Yellow "[+] Exchange servers exist please manually check for access/open mailboxes with OWA or Mailsniper"
+					Write-Host -ForegroundColor Yellow "[+] Exchange Trusted Subsystem has memberships, please check if there is a running exchange server and manually check for access/open mailboxes with OWA or Mailsniper"
 					Write-Host "[W] Writing to $file"
 					$data | Out-File $file
 				}
 				else {
-					Write-Host -ForegroundColor DarkGreen "[+] No group Exchange Trusted Subsystem, probably no on-prem Exchange Server"
+					Write-Host -ForegroundColor DarkGreen "[+] No group Exchange Trusted Subsystem, there probably is no on-prem Exchange Server"
 				}
 			Write-Host " "
 			
