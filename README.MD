@@ -2,7 +2,7 @@
 The tool is a wrapper around PowerView, Impacket, PowerUpSQL, BloodHound, Ldaprelayscan and Crackmapexec to automate the execution of enumeration and a lot of checks performed during a AD pentest/assesment. Thanks to all the authors of the original tools.
 
 ## Installation & Setup
-- Install python 3.10 from the Windows store
+- Install python 3.10 (For example from the Windows store)
 ```
 git clone https://github.com/0xJs/domain_audit
 cd import; git clone https://github.com/SecureAuthCorp/impacket
