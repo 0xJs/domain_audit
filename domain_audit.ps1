@@ -20,10 +20,56 @@ $script:Checks_Path = ''
 $script:OutputDirectoryCreated = ''
 $script:Creds = ''
 
-#Import dependancies
-Import-Module -Force -Name $PowerView_Path -WarningAction silentlycontinue
-Import-Module -Force -Name $BloodHound_Path -WarningAction silentlycontinue
-Import-Module -Force -Name $GpRegisteryPolicy_Path -WarningAction silentlycontinue
+# Check and Import dependancies
+if (-not(Test-Path -Path $PowerView_Path)) {
+	Write-Host -ForegroundColor Red "$PowerView_Path Not found on the system"
+	Write-Host -ForegroundColor Red "Exiting script most functions use PowerView"
+	exit
+}
+else {
+	Import-Module -Force -Name $PowerView_Path -WarningAction silentlycontinue
+}
+
+if (-not(Test-Path -Path $BloodHound_Path)) {
+	Write-Host -ForegroundColor Red "$BloodHound_Path doesn't exist. Please check the file and path variables in the script."
+	Write-Host -ForegroundColor Red "Won't be able to collect BloodHound data"
+	Write-Host " "
+}
+else {
+	Import-Module -Force -Name $BloodHound_Path -WarningAction silentlycontinue
+}
+
+if (-not(Test-Path -Path $GpRegisteryPolicy_Path)) {
+	Write-Host -ForegroundColor Red "$GpRegisteryPolicy_Path doesn't exist. Please check the file and path variables in the script."
+	Write-Host -ForegroundColor Red "Won't be able to parse LAPS policy"
+	Write-Host " "
+}
+else {
+	Import-Module -Force -Name $GpRegisteryPolicy_Path -WarningAction silentlycontinue
+}
+
+if (-not(Test-Path -Path $Impacket_Path\examples\GetUserSPNs.py)) {
+	Write-Host -ForegroundColor Red "$Impacket_Path\examples\GetUserSPNs.py doesn't exist. Please check installation."
+	Write-Host -ForegroundColor Red "Won't be able to parse Kerberoast, AS-REPRoast or check for the printspooler service"
+	Write-Host " "
+}
+
+if (-not(Test-Path -Path $LdapRelayScan_Path)) {
+	Write-Host -ForegroundColor Red "$LdapRelayScan_Path doesn't exist. Please check installation."
+	Write-Host -ForegroundColor Red "Won't be able to check for LDAPS signing and binding"
+	Write-Host " "
+}
+
+$CheckPython = (python -V)
+if (-not($CheckPython -Match "Python")) {
+	Write-Host -ForegroundColor Red "Python doesn't exist. Please check installation."
+	Write-Host -ForegroundColor Red "Won't be able to do any of the SMB or share checks"
+}
+
+if (-not(Test-Path -Path $CME_Path)) {
+	Write-Host -ForegroundColor Red "$CME_Path doesn't exist."
+	Write-Host -ForegroundColor Red "Won't be able to do any of the SMB or share checks"
+}
 
 Function Invoke-ADCheckAll {
 <#
@@ -188,6 +234,7 @@ Start ADChecks with all modules
 		Write-Host -ForegroundColor Red "[-] Exiting, please provide a valid set op credentials"
 	}
 }
+
 
 Function Create-CredentialObject {
 <#
@@ -1166,7 +1213,7 @@ Invoke-ADCheckPasspol -Domain 'contoso.com' -Server 'dc1.contoso.com' -User '0xj
 	
 	# CHECK IF ClearTextPassword=0
 	if ($data.systemaccess.ClearTextPassword -as [int] -eq 0){ 
-		Write-Host -ForegroundColor DarkGreen "[+] Passwordpolicy contains ClearTextPassword=0. Domain controller does not save passwords in cleartext"
+		Write-Host -ForegroundColor DarkGreen "[+] Passwordpolicy contains ClearTextPassword=0. Domain controller doesn't save passwords in cleartext"
 	}
 	ElseIf ($data.systemaccess.ClearTextPassword -as [int] -eq 1) {
 		Write-Host -ForegroundColor Red "[-] Passwordpolicy contains ClearTextPassword=1. Domain Controller saves passwords in cleartext"
@@ -2959,7 +3006,7 @@ Invoke-ADCheckSMB -Domain 'contoso.com' -Server 'dc1.contoso.com' -User '0xjs' -
 			$file = "$findings_path\computers_nosigning.txt"
 			if ($data3){ 
 					$count = $data3 | Measure-Object | Select-Object -expand Count
-					Write-Host -ForegroundColor Red "[+] There are $count reachable computers which does not require signing (Signing:False)"
+					Write-Host -ForegroundColor Red "[+] There are $count reachable computers which doesn't require signing (Signing:False)"
 					Write-Host "[W] Writing to $file"
 					$data3 | Out-File -Encoding utf8 $file
 				}
@@ -3350,7 +3397,7 @@ Invoke-ADCheckLDAP -Server 'dc1.contoso.com' -User '0xjs' -Password 'Password01!
 	Write-Host "---Checking for LDAP signing---"
 	if ($data -Match "SERVER SIGNING REQUIREMENTS NOT ENFORCED!"){
 		$file = "$findings_path\domaincontrollers_no_ldap_signing.txt"
-		Write-Host -ForegroundColor Red "[+] One or more domain controller(s) does not require LDAP signing"
+		Write-Host -ForegroundColor Red "[+] One or more domain controller(s) doesn't require LDAP signing"
 		Write-Host "[W] Writing to $file"
 		$data | Out-File -Encoding utf8 $file
 	}
@@ -3365,7 +3412,7 @@ Invoke-ADCheckLDAP -Server 'dc1.contoso.com' -User '0xjs' -Password 'Password01!
 	Write-Host "---Checking for LDAPS binding---"
 	if ($data -Match 'CHANNEL BINDING SET TO "NEVER"! PARTY TIME!'){
 		$file = "$findings_path\domaincontrollers_no_ldaps_binding.txt"
-		Write-Host -ForegroundColor Red "[+] One or more domain controller(s) does not require LDAPS binding"
+		Write-Host -ForegroundColor Red "[+] One or more domain controller(s) doesn't require LDAPS binding"
 		Write-Host "[W] Writing to $file"
 		$data | Out-File -Encoding utf8 $file
 	}
