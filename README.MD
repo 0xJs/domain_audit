@@ -1,5 +1,5 @@
 # Domain Audit
-The tool is a wrapper around PowerView, Impacket, PowerUpSQL, BloodHound, Ldaprelayscan and Crackmapexec to automate the execution of enumeration and a lot of checks performed during a AD pentest/assesment. Thanks to all the authors of the original tools.
+The tool is a wrapper around PowerView, Impacket, PowerUpSQL, BloodHound, Ldaprelayscan and Crackmapexec to automate the execution of enumeration and a lot of checks performed during a On-Prem Active Directory Penetrationtest. Thanks to all the authors of the original tools.
 
 ## Installation & Setup
 - Install python 3.10 (For example from the Windows store)
@@ -127,6 +127,7 @@ Invoke-ADCheckAll will execute the following in order:
 - Check if the webservice client is running on accessible machines
 
 ## TO-DO & Features
+- Add check for if all tools are installed
 - Add checks for kerberos password policy?
 - Check for admin count on users or groups which are no longer admin
 - Add SQL query to retrieve databases of accessible SQL servers
