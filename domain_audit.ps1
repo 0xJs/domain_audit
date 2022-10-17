@@ -3209,14 +3209,15 @@ Invoke-ADCheckExchange -Domain 'contoso.com' -Server 'dc1.contoso.com' -User '0x
 			$data | Out-File $file
 			
 			$file = "$data_path\Exchangeservers.txt"
-			$data = Get-DomainGroupMember "Exchange Trusted Subsystem" -Domain $Domain -Server $Server -Credential $Creds | Get-DomainComputer -Domain $Domain -Server $Server -Credential $Creds | Select-Object samaccountname, lastlogon | Sort-Object -Property lastlogon -Descending
+			$data = Get-DomainGroupMember "Exchange Trusted Subsystem" -Domain $Domain -Server $Server -Credential $Creds -ErrorAction Silentlycontinue -WarningAction Silentlycontinue | Where-Object -Property MemberObjectClass -Match computer | Select-Object MemberName
 			if ($data){ 	
-					Write-Host -ForegroundColor Yellow "[+] Exchange Trusted Subsystem has memberships, please check if there is a running exchange server and manually check for access/open mailboxes with OWA or Mailsniper"
+					Write-Host -ForegroundColor Yellow "[+] Computer found which is part of Exchange Trusted Subsystem manually check for access/open mailboxes with OWA or Mailsniper"
 					Write-Host "[W] Writing to $file"
 					$data | Out-File $file
+					
 				}
 				else {
-					Write-Host -ForegroundColor DarkGreen "[+] No group Exchange Trusted Subsystem, there probably is no on-prem Exchange Server"
+					Write-Host -ForegroundColor DarkGreen "[+] Exchange Trusted Subsystem has no memberships, there probably is no on-prem Exchange Server"
 				}
 			Write-Host " "
 			
