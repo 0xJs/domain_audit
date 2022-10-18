@@ -967,7 +967,7 @@ Start all SQL checks but skip prompt asking if the process is running as the dom
 			# Checking connection to MSSQL instances
 			Write-Host "[+] Checking connection to each MSSQL instance"
 			$results = ForEach ($sqlserver in $TblSQLServerSpns.Instance){
-				Get-SQLConnectionTest -Instance $sqlserver
+				Get-SQLConnectionTest -Instance $sqlserver -TimeOut 30
 			}
 			$Accessible_SQLServers = $results | Where-Object -Property status -Like Accessible 
 			
