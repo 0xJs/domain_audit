@@ -131,6 +131,7 @@ Invoke-ADCheckAll will execute the following in order:
 - Add checks for kerberos password policy?
 - Check for admin count on users or groups which are no longer admin
 - Add SQL query to retrieve databases of accessible SQL servers
+- Add check to check as who the SQL server is running
 - Find a way to audit all ACL's (Invoke-ACLScanner doesnt work well from non domain joined perspective)
 - Add ADCS checks, but need to set this up in a LAB environment first.
 - Split invoke-sqlaudit into seperate checks
