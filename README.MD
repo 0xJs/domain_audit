@@ -5,9 +5,13 @@ The tool is a wrapper around PowerView, Impacket, PowerUpSQL, BloodHound, Ldapre
 - Install python 3.10 (For example from the Windows store)
 ```
 git clone https://github.com/0xJs/domain_audit
-cd import; git clone https://github.com/SecureAuthCorp/impacket
+cd .\domain_audit\import\
+git clone https://github.com/SecureAuthCorp/impacket
 cd impacket; python3 -m pip install .
 cd ../;
+git clone https://github.com/zyn3rgy/LdapRelayScan;
+cd LdapRelayScan;
+python3 -m pip install -r .\requirements.txt
 ```
 - Make sure the path viariables in the script to the following tools are correct, especially impacket (since it doesn't clone from this repo).
 ```
