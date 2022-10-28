@@ -2497,7 +2497,7 @@ Invoke-ADCheckPrivilegedObjects -Domain 'contoso.com' -Server 'dc1.contoso.com' 
 	Write-Host " "
 	
 	# Check if there is a computer part of a high privileged group
-	Write-Host "---Checking if there are computerobjects part ofhigh privileged groups---"
+	Write-Host "---Checking if there are computerobjects part of high privileged groups---"
 	$data = Get-DomainGroup -Domain $Domain -Server $Server -Credential $Creds -AdminCount | Get-DomainGroupMember -Domain $Domain -Server $Server -Credential $Creds -Recurse -ErrorAction Silentlycontinue -WarningAction Silentlycontinue | Where-Object -Property MemberObjectClass -Match computer | Select-Object MemberName
 	$file = "$findings_path\computers_part_of_highprivilegedgroups.txt"
 	if ($data){ 
