@@ -3430,3 +3430,91 @@ Invoke-ADCheckLDAP -Server 'dc1.contoso.com' -User '0xjs' -Password 'Password01!
 	Write-Host " "
 }
 
+Function Invoke-ADCheckPreWindows2000Group {
+<#
+.SYNOPSIS
+Author: Jony Schats - 0xjs
+Required Dependencies: None
+Optional Dependencies: None
+
+.DESCRIPTION
+Checks the members of the group Pre-Windows 2000 Compatible Access. https://www.semperis.com/blog/security-risks-pre-windows-2000-compatibility-windows-2022/
+
+.PARAMETER Server
+Specifies an Active Directory server IP to bind to, e.g. 10.0.0.1
+
+.PARAMETER Domain
+Specifies the domain to use for the query and creating outputdirectory.
+
+.PARAMETER User
+Specifies the username to use for the query.
+
+.PARAMETER Password
+Specifies the Password in combination with the username to use for the query.
+
+.PARAMETER OutputDirectory
+Specifies the path to use for the output directory, defaults to the current directory.
+
+.EXAMPLE
+Invoke-ADCheckPreWindows2000Group -Server 'dc1.contoso.com' -User '0xjs' -Password 'Password01!'
+#>
+
+	#Parameters
+	[CmdletBinding()]
+	Param(
+		[Parameter(Mandatory=$true,HelpMessage="Enter a domain name here, e.g. contoso.com")]
+		[ValidateNotNullOrEmpty()]
+		[string]$Domain,
+		
+		[Parameter(Mandatory=$true,HelpMessage="Enter a IP of a domain controller here, e.g. 10.0.0.1")]
+		[ValidateNotNullOrEmpty()]
+		[string]$Server,
+		
+		[Parameter(Mandatory=$true,HelpMessage="Enter the username to connect with")]
+		[ValidateNotNullOrEmpty()]
+		[string]$User,
+		
+		[Parameter(Mandatory=$true,HelpMessage="Enter the password of the user")]
+		[ValidateNotNullOrEmpty()]
+		[string]$Password,
+		
+		[Parameter(Mandatory=$false)]
+		[ValidateNotNullOrEmpty()]
+		[string]$OutputDirectory
+	)
+	
+	if ($User -ne $Creds.Username) {
+		Create-CredentialObject -User $User -Password $Password
+	}
+	
+	if ($OutputDirectoryCreated -ne $true) {
+		if ($PSBoundParameters['OutputDirectory']) {
+			New-OutputDirectory -Domain $Domain -OutputDirectory $OutputDirectory
+			}
+			else {
+				New-OutputDirectory -Domain $Domain
+		}
+	}
+	Write-Host "---Checking members of Pre-Windows 2000 Compatible Access---"
+	$file = "$data_path\Pre-Windows_2000_Compatible_Access_Members.txt"
+	$data = Get-DomainGroupMember -Domain $Domain -Server $Server -Credential $Creds "Pre-Windows 2000 Compatible Access"
+	
+	if ($data){ 	
+			Write-Host -ForegroundColor Yellow "[+] Pre-Windows 2000 Compatible Access has memberships"
+			Write-Host "[W] Writing to $file"
+			$data | Out-File $file
+			Write-Host " "
+			
+			if ($data | Where-Object -Property MemberName -Match "Authenticated Users"){ 
+				$file = "$findings_path\Pre-Windows_2000_Compatible_Access_Authenticated_users.txt"
+				Write-Host -ForegroundColor DarkRed "[+] Authenticated users group is member of Pre-Windows 2000 Compatible Access has memberships"
+				Write-Host "[W] Writing to $file"
+				$data | Out-File $file	
+			}
+		}
+		else {
+			Write-Host -ForegroundColor DarkGreen "[+] Pre-Windows 2000 Compatible Access has no memberships"
+		}
+	Write-Host " "
+}
+
