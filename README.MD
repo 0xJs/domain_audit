@@ -131,7 +131,9 @@ Invoke-ADCheckAll will execute the following in order:
 - Check if the webservice client is running on accessible machines
 
 ## TO-DO & Features
-- Add check for if all tools are installed
+- Check for old vulnerable Exchange permissions
+- Check the pre Windows 2000 group https://www.semperis.com/blog/security-risks-pre-windows-2000-compatibility-windows-2022/
+- Check for access to discovered machines.
 - Add checks for kerberos password policy?
 - Check for admin count on users or groups which are no longer admin
 - Add SQL query to retrieve databases of accessible SQL servers
