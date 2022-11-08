@@ -117,6 +117,7 @@ Invoke-ADCheckAll will execute the following in order:
 - Check who can add computerobjects to the domain
     - Check if this is the default authenticated users group
     - Check what the ms-ds-machineaccountqouta is, if it is null(good) or not-set(bad) or another value.
+- Check membership of Pre-Windows 2000 Compatible Access group and if authenticated users is still member of it
 - Check for passwords in the sysvol
 - Check for passwords in netlogon (scripts, programs etc)
 - Check if printspooler service is running on the DC
@@ -132,7 +133,7 @@ Invoke-ADCheckAll will execute the following in order:
 
 ## TO-DO & Features
 - Check for old vulnerable Exchange permissions
-- Check the pre Windows 2000 group https://www.semperis.com/blog/security-risks-pre-windows-2000-compatibility-windows-2022/
+- Check if adding DNS records as authenticated users is possible
 - Check for access to discovered machines.
 - Add checks for kerberos password policy?
 - Check for admin count on users or groups which are no longer admin
