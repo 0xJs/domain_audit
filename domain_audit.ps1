@@ -215,6 +215,8 @@ Start ADChecks with all modules
 
 		Invoke-ADCheckDomainJoin -Domain $Domain -Server $Server -User $User -Password $Password
 		
+		Invoke-ADCheckPreWindows2000Group -Domain $Domain -Server $Server -User $User -Password $Password
+		
 		Invoke-ADCheckSysvolPassword -Domain $Domain -Server $Server -User $User -Password $Password
 		
 		Invoke-ADCheckNetlogonPassword -Domain $Domain -Server $Server -User $User -Password $Password
@@ -3517,4 +3519,3 @@ Invoke-ADCheckPreWindows2000Group -Server 'dc1.contoso.com' -User '0xjs' -Passwo
 		}
 	Write-Host " "
 }
-
