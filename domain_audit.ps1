@@ -185,6 +185,8 @@ Start ADChecks with all modules
 		runas /noprofile /env /netonly /user:$Domain\$User "powershell.exe -Exec bypass -NoExit Import-Module $PSCommandPath; Set-Variable Findings_Path -Value $OutputDirectory_Path\findings; Set-Variable Data_Path -Value $OutputDirectory_Path\data; Set-Variable Checks_Path -Value $OutputDirectory_Path\checks; Set-Variable OutputDirectoryCreated -Value $OutputDirectoryCreated; Invoke-ADCheckSQL -Domain $Domain -Server $Server -User $User -Password $Password -SkipPrompt"
 		Write-Host " "
 		
+		Invoke-ADCheckDomainFunctionalLevel -Domain $Domain -Server $Server -User $User -Password $Password
+		
 		Invoke-ADCheckPasspol -Domain $Domain -Server $Server -User $User -Password $Password
 		
 		Invoke-ADCheckPasspolKerberos -Domain $Domain -Server $Server -User $User -Password $Password
@@ -730,6 +732,107 @@ Execute all basic enumeration steps but skip BloudHound
 		$data | Out-File $file
 	}
 	
+	Write-Host " "
+}
+
+Function Invoke-ADCheckDomainFunctionalLevel {
+<#
+.SYNOPSIS
+Author: Jony Schats - 0xjs
+Required Dependencies: None
+Optional Dependencies: None
+
+.DESCRIPTION
+Checks the functional level for the domain
+
+.PARAMETER Domain
+Specifies the domain to use for the query and creating outputdirectory.
+
+.PARAMETER Server
+Specifies an Active Directory server IP to bind to, e.g. 10.0.0.1
+
+.PARAMETER User
+Specifies the username to use for the query.
+
+.PARAMETER Password
+Specifies the Password in combination with the username to use for the query.
+
+.PARAMETER OutputDirectory
+Specifies the path to use for the output directory, defaults to the current directory.
+
+.EXAMPLE
+Invoke-ADCheckFunctionalLevel -Domain 'contoso.com' -Server 'dc1.contoso.com' -User '0xjs' -Password 'Password01!'
+Enumerate trusts for contoso.com
+
+.EXAMPLE
+Invoke-ADCheckFunctionalLevel -Domain 'contoso.com' -Server 'dc1.contoso.com' -User '0xjs' -Password 'Password01!' -OutputDirectory C:\temp\
+Enumerate trusts for contoso.com and save output in C:\temp\
+#>
+
+	#Parameters
+	[CmdletBinding()]
+	Param(
+		[Parameter(Mandatory=$true,HelpMessage="Enter a domain name here, e.g. contoso.com")]
+		[ValidateNotNullOrEmpty()]
+		[string]$Domain,
+		
+		[Parameter(Mandatory=$true,HelpMessage="Enter a IP of a domain controller here, e.g. 10.0.0.1")]
+		[ValidateNotNullOrEmpty()]
+		[string]$Server,
+		
+		[Parameter(Mandatory=$true,HelpMessage="Enter the username to connect with")]
+		[ValidateNotNullOrEmpty()]
+		[string]$User,
+		
+		[Parameter(Mandatory=$true,HelpMessage="Enter the password of the user")]
+		[ValidateNotNullOrEmpty()]
+		[string]$Password,
+		
+		[Parameter(Mandatory=$false)]
+		[ValidateNotNullOrEmpty()]
+		[string]$OutputDirectory
+	)
+	
+	if ($OutputDirectoryCreated -ne $true) {
+		if ($PSBoundParameters['OutputDirectory']) {
+			New-OutputDirectory -Domain $Domain -OutputDirectory $OutputDirectory
+			}
+			else {
+				New-OutputDirectory -Domain $Domain
+		}
+	}
+	
+	if ($User -ne $Creds.Username) {
+		Create-CredentialObject -User $User -Password $Password
+	}	
+	
+	# Check if the domain functional level is 2016
+	$DomainData = Get-Domain -Domain $Domain -Credential $Creds
+	
+	# Defining domain functional levels
+	$DomainMode = @{
+		0 = "Windows 2000 native"
+		1 = "Windows 2003 interim"
+		2 = "Windows 2003"
+		3 = "Windows 2008"
+		4 = "Windows 2008 R2"
+		5 = "Windows 2012"
+		6 = "Windows 2012 R2"
+		7 = "Windows 2016"
+		8 = "TBD"
+	}
+	Write-Host "---Checking domain functional level---"
+	$DomainFunctionalLevel = $DomainMode[$DomainData.DomainModeLevel]
+	$file = "$findings_path\domainfunctionallevel.txt"
+	
+	if ($DomainFunctionalLevel -Notlike "Windows 2016"){
+		Write-Host -ForegroundColor Red "[+] The domain functional level is $DomainFunctionalLevel"
+		Write-Host "[W] Writing to $file"
+		$data | Out-File $file
+	}
+	else {
+		Write-Host -ForegroundColor DarkGreen "[+] The domain functional level is $DomainFunctionalLevel"
+	}
 	Write-Host " "
 }
 
@@ -1286,11 +1389,11 @@ Invoke-ADCheckPasspol -Domain 'contoso.com' -Server 'dc1.contoso.com' -User '0xj
 		}
 		Write-Host "Writing password policy to $file"
 		$data.systemaccess | Out-File $file
-		Write-Host " "
 	}
 	else {
 		Write-Host -ForegroundColor Red "[-] Could not retrieve password policy"
 	}
+	Write-Host " "
 }
 
 Function Invoke-ADCheckPasspolKerberos {
@@ -1420,6 +1523,7 @@ Invoke-ADCheckPasspolKerberos -Domain 'contoso.com' -Server 'dc1.contoso.com' -U
 	else {
 		Write-Host -ForegroundColor Red "[-] Could not retrieve password policy"
 	}
+	Write-Host " "
 }
 
 Function Invoke-ADCheckLAPS {
