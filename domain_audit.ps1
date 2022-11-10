@@ -187,6 +187,8 @@ Start ADChecks with all modules
 		
 		Invoke-ADCheckPasspol -Domain $Domain -Server $Server -User $User -Password $Password
 		
+		Invoke-ADCheckPasspolKerberos -Domain $Domain -Server $Server -User $User -Password $Password
+		
 		Invoke-ADCheckLAPS -Domain $Domain -Server $Server -User $User -Password $Password
 		
 		Invoke-ADCheckDescription -Domain $Domain -Server $Server -User $User -Password $Password
@@ -1218,13 +1220,13 @@ Invoke-ADCheckPasspol -Domain 'contoso.com' -Server 'dc1.contoso.com' -User '0xj
 		if ($data.systemaccess.ClearTextPassword -as [int] -eq 0){ 
 			Write-Host -ForegroundColor DarkGreen "[+] Passwordpolicy contains ClearTextPassword=0. Domain controller doesn't save passwords in cleartext"
 		}
-		ElseIf ($data.systemaccess.ClearTextPassword -as [int] -eq 1) {
+		elseif ($data.systemaccess.ClearTextPassword -as [int] -eq 1) {
 			Write-Host -ForegroundColor Red "[-] Passwordpolicy contains ClearTextPassword=1. Domain Controller saves passwords in cleartext"
 			$file = "$findings_path\passwordpolicy_cleartext.txt"
 			Write-Host "[W] Writing to $file"
 			$data.systemaccess | Out-File "$findings_path\passwordpolicy_ClearTextPassword.txt"
 		}
-		Else {
+		else {
 			Write-Host -ForegroundColor Yellow "[+] Could not determine cleartextpassword value, please manually check passwordpolicy"
 		}
 		
@@ -1233,7 +1235,7 @@ Invoke-ADCheckPasspol -Domain 'contoso.com' -Server 'dc1.contoso.com' -User '0xj
 		if ($MinimumPasswordLength -as [int] -ge "12"){
 			Write-Host -ForegroundColor DarkGreen "[+] Password length requirement is higher or equal to 12"
 		}
-		Else {
+		else {
 			Write-Host -ForegroundColor Red "[-] Password length requirement is $MinimumPasswordLength characters"
 		}
 		
@@ -1241,7 +1243,7 @@ Invoke-ADCheckPasspol -Domain 'contoso.com' -Server 'dc1.contoso.com' -User '0xj
 		if ($data.systemaccess.MinimumPasswordLength -as [int] -eq "1"){
 			Write-Host -ForegroundColor DarkGreen "[+] PasswordComplexity is equal to 1 (Enabled)"
 		}
-		Else {
+		else {
 			Write-Host -ForegroundColor Red "[-] PasswordComplexity is 0 (Disabled)!"
 		}
 		
@@ -1250,10 +1252,10 @@ Invoke-ADCheckPasspol -Domain 'contoso.com' -Server 'dc1.contoso.com' -User '0xj
 		if ($LockoutBadCount -as [int] -gt "6"){
 			Write-Host -ForegroundColor Red "[-] LockOutBadCount is $LockoutBadCount"
 		}
-		ElseIf ($LockoutBadCount -as [int] -eq 0) {
+		elseif ($LockoutBadCount -as [int] -eq 0) {
 			Write-Host -ForegroundColor Red "[-] LockOutBadCount is 0, accounts wont be locked!"
 		}
-		Else {
+		else {
 			Write-Host -ForegroundColor DarkGreen "[+] LockOutBadCount is $LockoutBadCount"
 		}
 		
@@ -1262,11 +1264,11 @@ Invoke-ADCheckPasspol -Domain 'contoso.com' -Server 'dc1.contoso.com' -User '0xj
 			if ($ResetLockoutCount -as [int] -ge "30"){
 				Write-Host -ForegroundColor DarkGreen "[+] ResetLockoutCount is $ResetLockoutCount"
 			}
-			Else {
+			else {
 				Write-Host -ForegroundColor Red "[-] ResetLockoutCount is $ResetLockoutCount"
 			}
 		}
-		Else {
+		else {
 			Write-Host -ForegroundColor Red "[-] ResetLockoutCount is not set"	
 		}
 		
@@ -1275,18 +1277,147 @@ Invoke-ADCheckPasspol -Domain 'contoso.com' -Server 'dc1.contoso.com' -User '0xj
 			if ($LockoutDuration -as [int] -ge "30"){
 				Write-Host -ForegroundColor DarkGreen "[+] LockoutDuration is $LockoutDuration"
 			}
-			Else {
+			else {
 				Write-Host -ForegroundColor Red "[-] LockoutDuration is $LockoutDuration"
 			}
 		}
-		Else {
+		else {
 			Write-Host -ForegroundColor Red "[-] LockoutDuration is not set"	
 		}
 		Write-Host "Writing password policy to $file"
 		$data.systemaccess | Out-File $file
 		Write-Host " "
 	}
-	Else {
+	else {
+		Write-Host -ForegroundColor Red "[-] Could not retrieve password policy"
+	}
+}
+
+Function Invoke-ADCheckPasspolKerberos {
+<#
+.SYNOPSIS
+Author: Jony Schats - 0xjs
+Required Dependencies: None
+Optional Dependencies: None
+
+.DESCRIPTION
+Check if the password policy for kerberos is default or changed
+
+.PARAMETER Domain
+Specifies the domain to use for the query and creating outputdirectory.
+
+.PARAMETER Server
+Specifies an Active Directory server IP to bind to, e.g. 10.0.0.1
+
+.PARAMETER User
+Specifies the username to use for the query.
+
+.PARAMETER Password
+Specifies the Password in combination with the username to use for the query.
+
+.PARAMETER OutputDirectory
+Specifies the path to use for the output directory, defaults to the current directory.
+
+.EXAMPLE
+Invoke-ADCheckPasspolKerberos -Domain 'contoso.com' -Server 'dc1.contoso.com' -User '0xjs' -Password 'Password01!'
+#>
+
+	#Parameters
+	[CmdletBinding()]
+	Param(
+		[Parameter(Mandatory=$true,HelpMessage="Enter a domain name here, e.g. contoso.com")]
+		[ValidateNotNullOrEmpty()]
+		[string]$Domain,
+		
+		[Parameter(Mandatory=$true,HelpMessage="Enter a IP of a domain controller here, e.g. 10.0.0.1")]
+		[ValidateNotNullOrEmpty()]
+		[string]$Server,
+		
+		[Parameter(Mandatory=$true,HelpMessage="Enter the username to connect with")]
+		[ValidateNotNullOrEmpty()]
+		[string]$User,
+		
+		[Parameter(Mandatory=$true,HelpMessage="Enter the password of the user")]
+		[ValidateNotNullOrEmpty()]
+		[string]$Password,
+		
+		[Parameter(Mandatory=$false)]
+		[ValidateNotNullOrEmpty()]
+		[string]$OutputDirectory
+	)
+	
+	if ($OutputDirectoryCreated -ne $true) {
+		if ($PSBoundParameters['OutputDirectory']) {
+			New-OutputDirectory -Domain $Domain -OutputDirectory $OutputDirectory
+			}
+			else {
+				New-OutputDirectory -Domain $Domain
+		}
+	}
+	
+	if ($User -ne $Creds.Username) {
+		Create-CredentialObject -User $User -Password $Password
+	}	
+	
+	Write-Host "---Checking password policy Kerberos---"
+	$data = Get-DomainPolicyData -Domain $Domain -Server $Server -Credential $Creds
+	$file = "$findings_path\passwordpolicy_kerberos.txt"
+	
+	if ($data){ 
+		#Checking kerberos default values
+		$MaxTicketAge = $data.KerberosPolicy.MaxTicketAge
+		if ($MaxTicketAge -as [int] -eq "10"){
+			Write-Host -ForegroundColor DarkGreen "[+] Kerberos MaxTicketAge is the default 10"
+		}
+		else {
+			Write-Host -ForegroundColor Red "[+] Kerberos MaxTicketAge is not the default 10"
+			$PrintPassPol = $true
+		}
+		
+		$MaxRenewAge = $data.KerberosPolicy.MaxRenewAge
+		if ($MaxRenewAge -as [int] -eq "7"){
+			Write-Host -ForegroundColor DarkGreen "[+] Kerberos MaxRenewAge is the default 7"
+		}
+		else {
+			Write-Host -ForegroundColor Red "[+] Kerberos MaxRenewAge is not the default 7"
+			$PrintPassPol = $true
+		}
+		
+		$MaxServiceAge = $data.KerberosPolicy.MaxServiceAge
+		if ($MaxServiceAge -as [int] -eq "600"){
+			Write-Host -ForegroundColor DarkGreen "[+] Kerberos MaxServiceAge is the default 600"
+		}
+		else {
+			Write-Host -ForegroundColor Red "[+] Kerberos MaxTicketAge is not the default 600"
+			$PrintPassPol = $true
+		}
+		
+		$MaxClockSkew = $data.KerberosPolicy.MaxClockSkew
+		if ($MaxClockSkew -as [int] -eq "5"){
+			Write-Host -ForegroundColor DarkGreen "[+] Kerberos MaxClockSkew is the default 5"
+		}
+		else {
+			Write-Host -ForegroundColor Red "[+] Kerberos MaxTicketAge is not the default 5"
+			$PrintPassPol = $true
+		}
+		
+		$TicketValidateClient = $data.KerberosPolicy.TicketValidateClient
+		if ($TicketValidateClient -as [int] -eq "1"){
+			Write-Host -ForegroundColor DarkGreen "[+] Kerberos TicketValidateClient is enabled"
+		}
+		else {
+			Write-Host -ForegroundColor Red "[+] Kerberos TicketValidateClient is disabled!"
+			$PrintPassPol = $true
+		}
+		
+		
+		if ($PrintPassPol -eq $true) {
+			Write-Host "Writing password policy to $file"
+			$data.KerberosPolicy | Out-File $file
+			Write-Host " "
+		}
+	}
+	else {
 		Write-Host -ForegroundColor Red "[-] Could not retrieve password policy"
 	}
 }
@@ -1411,7 +1542,7 @@ Invoke-ADCheckLAPS -Domain 'contoso.com' -Server 'dc1.contoso.com' -User '0xjs' 
 						if (($data2 | Where-Object -Property ValueName -Match AdminAccountName | Select-Object ValueData).ValueData -eq $null){
 							Write-Host -ForegroundColor Yellow "[-] The LAPS local admin user is the default administrator account"
 						}
-						Else {
+						else {
 							Write-Host -ForegroundColor DarkGreen "[+] The LAPS local admin user is not the default administrator account"
 						}
 						
@@ -1419,7 +1550,7 @@ Invoke-ADCheckLAPS -Domain 'contoso.com' -Server 'dc1.contoso.com' -User '0xjs' 
 						if (($data2 | Where-Object -Property ValueName -Match PasswordComplexity | Select-Object ValueData).ValueData -eq "4"){
 							Write-Host -ForegroundColor DarkGreen "[+] The password complexity is 4"
 						}
-						Else {
+						else {
 							Write-Host -ForegroundColor Red "[-] The password complexity is less then 4"
 						}
 						
@@ -1427,10 +1558,10 @@ Invoke-ADCheckLAPS -Domain 'contoso.com' -Server 'dc1.contoso.com' -User '0xjs' 
 						if (($data2 | Where-Object -Property ValueName -Match PasswordLength | Select-Object ValueData).ValueData -eq "14"){
 							Write-Host -ForegroundColor Yellow "[+] The password length is the default 14"
 						}
-						Elseif (($data2 | Where-Object -Property ValueName -Match PasswordLength | Select-Object ValueData).ValueData -lt "14") {
+						elseif (($data2 | Where-Object -Property ValueName -Match PasswordLength | Select-Object ValueData).ValueData -lt "14") {
 							Write-Host -ForegroundColor Red "[-] The password length is less then 14"
 						}
-						Elseif (($data2 | Where-Object -Property ValueName -Match PasswordLength | Select-Object ValueData).ValueData -gt "14") {
+						elseif (($data2 | Where-Object -Property ValueName -Match PasswordLength | Select-Object ValueData).ValueData -gt "14") {
 							Write-Host -ForegroundColor DarkGreen "[+] The password length is longer then 14"
 						}
 						
@@ -1438,10 +1569,10 @@ Invoke-ADCheckLAPS -Domain 'contoso.com' -Server 'dc1.contoso.com' -User '0xjs' 
 						if (($data2 | Where-Object -Property ValueName -Match PasswordAgeDays | Select-Object ValueData).ValueData -eq "30"){
 							Write-Host -ForegroundColor Yellow "[+] The password age days is the default 30"
 						}
-						Elseif (($data2 | Where-Object -Property ValueName -Match PasswordAgeDays | Select-Object ValueData).ValueData -lt "30") {
+						elseif (($data2 | Where-Object -Property ValueName -Match PasswordAgeDays | Select-Object ValueData).ValueData -lt "30") {
 							Write-Host -ForegroundColor DarkGreen "[+] The password age days is less then 30"
 						}
-						Elseif (($data2 | Where-Object -Property ValueName -Match PasswordAgeDays | Select-Object ValueData).ValueData -gt "30") {
+						elseif (($data2 | Where-Object -Property ValueName -Match PasswordAgeDays | Select-Object ValueData).ValueData -gt "30") {
 							Write-Host -ForegroundColor Red "[-] The password age days is longer then 30"
 						}
 						
@@ -1449,7 +1580,7 @@ Invoke-ADCheckLAPS -Domain 'contoso.com' -Server 'dc1.contoso.com' -User '0xjs' 
 						if (($data2 | Where-Object -Property ValueName -Match PwdExpirationProtectionEnabled | Select-Object ValueData).ValueData -eq "1"){
 							Write-Host -ForegroundColor DarkGreen "[+] The PwdExpirationProtectionEnabled is enabled"
 						}
-						Else {
+						else {
 							Write-Host -ForegroundColor Red "[-] The PwdExpirationProtectionEnabled is disabled or not configured (which means disabled)"
 						}
 						
@@ -1457,7 +1588,7 @@ Invoke-ADCheckLAPS -Domain 'contoso.com' -Server 'dc1.contoso.com' -User '0xjs' 
 						if (($data2 | Where-Object -Property ValueName -Match AdmPwdEnabled | Select-Object ValueData).ValueData -eq "1"){
 							Write-Host -ForegroundColor DarkGreen "[+] The LAPS policy is enabled"
 						}
-						Else {
+						else {
 							Write-Host -ForegroundColor Red "[-] The LAPS policy is disabled"
 						}
 					}
