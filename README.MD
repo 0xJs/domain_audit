@@ -13,7 +13,7 @@ git clone https://github.com/zyn3rgy/LdapRelayScan;
 cd LdapRelayScan;
 python3 -m pip install -r .\requirements.txt
 ```
-- Make sure the path viariables in the script to the following tools are correct, especially impacket (since it doesn't clone from this repo).
+- Make sure the path viariables in the script to the following tools are correct (if you followed the installation steps it should be)
 ```
 $script:PowerView_Path = "$PSScriptRoot\import\PowerView.ps1"
 $script:Powerupsql_Path = "$PSScriptRoot\import\PowerUpSQL.ps1"
