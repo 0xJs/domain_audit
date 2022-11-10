@@ -25,6 +25,11 @@ $script:CME_Path = "$PSScriptRoot\import\cme"
 $script:LdapRelayScan_Path = "$PSScriptRoot\import\LdapRelayScan\LdapRelayScan.py"
 ```
 
+- Issue with accessing Sysvol access denied?
+    - To resolve this issue run gpedit.msc, go to 
+    - `Computer -> Administrative Templates -> Network -> Network Provider -> Hardened UNC Paths`, enable the policy and click "Show" button.
+    - Enter `*` into "Value name" and enter `RequireMutualAuthentication=0,RequireIntegrity=0,RequirePrivacy=0` in value.
+
 ## Running domain_audit
 - Start PowerShell as Administrator
     - This is required to change the DNS server to DC IP and add domain to hosts file. Otherwise some checks/executions will fail such as Impacket.
