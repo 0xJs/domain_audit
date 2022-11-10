@@ -73,11 +73,13 @@ Invoke-ADCheckAll will execute the following in order:
     - Check if the current user is sysadmin
     - Run invoke-sqlaudit
     - Check for database links as sysadmin
+- Check if domain functional level is 2016
 - Check password policy configuration
     - Check for cleartextpasswords = 1
     - Check passwordlength
     - Check passwordcomplexity
     - Check account lockout
+- Check if kerberos policy configuration is changed from the defaults
 - Check if there is a GPO with LAPS in its name
     - Check to which OU's the GPO is applied to
     - Check the LAPS policy
