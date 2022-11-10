@@ -530,7 +530,7 @@ Write-Host "---------- COLORS EXPLAINED ----------"
 Write-Host "White is informational text"
 Write-Host -ForegroundColor DarkGreen "Green means check has passed"
 Write-Host -ForegroundColor Yellow "Yellow means manually check the data"
-Write-Host -ForegroundColor DarkRed "Dark Red means finding"
+Write-Host -ForegroundColor Red "Red means finding"
 Write-Host " "
 }
 
@@ -3509,7 +3509,7 @@ Invoke-ADCheckPreWindows2000Group -Server 'dc1.contoso.com' -User '0xjs' -Passwo
 			
 			if ($data | Where-Object -Property MemberName -Match "Authenticated Users"){ 
 				$file = "$findings_path\Pre-Windows_2000_Compatible_Access_Authenticated_users.txt"
-				Write-Host -ForegroundColor DarkRed "[+] Authenticated users group is member of Pre-Windows 2000 Compatible Access has memberships"
+				Write-Host -ForegroundColor Red "[+] Authenticated users group is member of Pre-Windows 2000 Compatible Access has memberships"
 				Write-Host "[W] Writing to $file"
 				$data | Out-File $file	
 			}
