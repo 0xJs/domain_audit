@@ -26,8 +26,7 @@ $script:LdapRelayScan_Path = "$PSScriptRoot\import\LdapRelayScan\LdapRelayScan.p
 ```
 
 - Issue with accessing Sysvol access denied?
-    - To resolve this issue run gpedit.msc, go to 
-    - `Computer -> Administrative Templates -> Network -> Network Provider -> Hardened UNC Paths`, enable the policy and click "Show" button.
+    - To resolve this issue run gpedit.msc, go to `Computer -> Administrative Templates -> Network -> Network Provider -> Hardened UNC Paths`, enable the policy and click "Show" button.
     - Enter `*` into "Value name" and enter `RequireMutualAuthentication=0,RequireIntegrity=0,RequirePrivacy=0` in value.
 
 ## Running domain_audit
