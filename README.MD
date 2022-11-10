@@ -133,16 +133,15 @@ Invoke-ADCheckAll will execute the following in order:
 - Check if the webservice client is running on accessible machines
 
 ## TO-DO & Features
-- Check for old vulnerable Exchange permissions
-- Check if adding DNS records as authenticated users is possible
-- Check for access to discovered machines.
 - Add checks for kerberos password policy?
-- Check for admin count on users or groups which are no longer admin
-- Add SQL query to retrieve databases of accessible SQL servers
 - Add check to check as who the SQL server is running
+- Add SQL query to retrieve databases of accessible SQL servers
+- Split invoke-sqlaudit into seperate checks
+- Check for old vulnerable Exchange permissions
+- Check for access to discovered machines over SMB, RDP, MSSQL etc!
+- Check for admin count on users or groups which are no longer admin
 - Find a way to audit all ACL's (Invoke-ACLScanner doesnt work well from non domain joined perspective)
 - Add ADCS checks, but need to set this up in a LAB environment first.
-- Split invoke-sqlaudit into seperate checks
 - Add function to skip dns change
 - Add dependancy options to each function
 
