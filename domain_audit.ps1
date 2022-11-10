@@ -1213,77 +1213,82 @@ Invoke-ADCheckPasspol -Domain 'contoso.com' -Server 'dc1.contoso.com' -User '0xj
 	$data = Get-DomainPolicyData -Domain $Domain -Server $Server -Credential $Creds
 	$file = "$findings_path\passwordpolicy.txt"
 	
-	# CHECK IF ClearTextPassword=0
-	if ($data.systemaccess.ClearTextPassword -as [int] -eq 0){ 
-		Write-Host -ForegroundColor DarkGreen "[+] Passwordpolicy contains ClearTextPassword=0. Domain controller doesn't save passwords in cleartext"
-	}
-	ElseIf ($data.systemaccess.ClearTextPassword -as [int] -eq 1) {
-		Write-Host -ForegroundColor Red "[-] Passwordpolicy contains ClearTextPassword=1. Domain Controller saves passwords in cleartext"
-		$file = "$findings_path\passwordpolicy_cleartext.txt"
-		Write-Host "[W] Writing to $file"
-		$data.systemaccess | Out-File "$findings_path\passwordpolicy_ClearTextPassword.txt"
-	}
-	Else {
-		Write-Host -ForegroundColor Yellow "[+] Could not determine cleartextpassword value, please manually check passwordpolicy"
-	}
-	
-	#Check minimun password length
-	$MinimumPasswordLength = $data.systemaccess.MinimumPasswordLength
-	if ($MinimumPasswordLength -as [int] -ge "12"){
-		Write-Host -ForegroundColor DarkGreen "[+] Password length requirement is higher or equal to 12"
-	}
-	Else {
-		Write-Host -ForegroundColor Red "[-] Password length requirement is $MinimumPasswordLength characters"
-	}
-	
-	#Check Password complexity
-	if ($data.systemaccess.MinimumPasswordLength -as [int] -eq "1"){
-		Write-Host -ForegroundColor DarkGreen "[+] PasswordComplexity is equal to 1 (Enabled)"
-	}
-	Else {
-		Write-Host -ForegroundColor Red "[-] PasswordComplexity is 0 (Disabled)!"
-	}
-	
-	#Checks for account lockout
-	$LockoutBadCount = $data.systemaccess.LockoutBadCount
-	if ($LockoutBadCount -as [int] -gt "6"){
-		Write-Host -ForegroundColor Red "[-] LockOutBadCount is $LockoutBadCount"
-	}
-	ElseIf ($LockoutBadCount -as [int] -eq 0) {
-		Write-Host -ForegroundColor Red "[-] LockOutBadCount is 0, accounts wont be locked!"
-	}
-	Else {
-		Write-Host -ForegroundColor DarkGreen "[+] LockOutBadCount is $LockoutBadCount"
-	}
-	
-	$ResetLockoutCount = $data.systemaccess.ResetLockoutCount
-	if ($ResetLockoutCount){	
-		if ($ResetLockoutCount -as [int] -ge "30"){
-			Write-Host -ForegroundColor DarkGreen "[+] ResetLockoutCount is $ResetLockoutCount"
+	if ($data){ 
+		# CHECK IF ClearTextPassword=0
+		if ($data.systemaccess.ClearTextPassword -as [int] -eq 0){ 
+			Write-Host -ForegroundColor DarkGreen "[+] Passwordpolicy contains ClearTextPassword=0. Domain controller doesn't save passwords in cleartext"
+		}
+		ElseIf ($data.systemaccess.ClearTextPassword -as [int] -eq 1) {
+			Write-Host -ForegroundColor Red "[-] Passwordpolicy contains ClearTextPassword=1. Domain Controller saves passwords in cleartext"
+			$file = "$findings_path\passwordpolicy_cleartext.txt"
+			Write-Host "[W] Writing to $file"
+			$data.systemaccess | Out-File "$findings_path\passwordpolicy_ClearTextPassword.txt"
 		}
 		Else {
-			Write-Host -ForegroundColor Red "[-] ResetLockoutCount is $ResetLockoutCount"
+			Write-Host -ForegroundColor Yellow "[+] Could not determine cleartextpassword value, please manually check passwordpolicy"
 		}
-	}
-	Else {
-		Write-Host -ForegroundColor Red "[-] ResetLockoutCount is not set"	
-	}
-	
-	$LockoutDuration = $data.systemaccess.LockoutDuration
-	if ($ResetLockoutCount){
-		if ($LockoutDuration -as [int] -ge "30"){
-			Write-Host -ForegroundColor DarkGreen "[+] LockoutDuration is $LockoutDuration"
+		
+		#Check minimun password length
+		$MinimumPasswordLength = $data.systemaccess.MinimumPasswordLength
+		if ($MinimumPasswordLength -as [int] -ge "12"){
+			Write-Host -ForegroundColor DarkGreen "[+] Password length requirement is higher or equal to 12"
 		}
 		Else {
-			Write-Host -ForegroundColor Red "[-] LockoutDuration is $LockoutDuration"
+			Write-Host -ForegroundColor Red "[-] Password length requirement is $MinimumPasswordLength characters"
 		}
+		
+		#Check Password complexity
+		if ($data.systemaccess.MinimumPasswordLength -as [int] -eq "1"){
+			Write-Host -ForegroundColor DarkGreen "[+] PasswordComplexity is equal to 1 (Enabled)"
+		}
+		Else {
+			Write-Host -ForegroundColor Red "[-] PasswordComplexity is 0 (Disabled)!"
+		}
+		
+		#Checks for account lockout
+		$LockoutBadCount = $data.systemaccess.LockoutBadCount
+		if ($LockoutBadCount -as [int] -gt "6"){
+			Write-Host -ForegroundColor Red "[-] LockOutBadCount is $LockoutBadCount"
+		}
+		ElseIf ($LockoutBadCount -as [int] -eq 0) {
+			Write-Host -ForegroundColor Red "[-] LockOutBadCount is 0, accounts wont be locked!"
+		}
+		Else {
+			Write-Host -ForegroundColor DarkGreen "[+] LockOutBadCount is $LockoutBadCount"
+		}
+		
+		$ResetLockoutCount = $data.systemaccess.ResetLockoutCount
+		if ($ResetLockoutCount){	
+			if ($ResetLockoutCount -as [int] -ge "30"){
+				Write-Host -ForegroundColor DarkGreen "[+] ResetLockoutCount is $ResetLockoutCount"
+			}
+			Else {
+				Write-Host -ForegroundColor Red "[-] ResetLockoutCount is $ResetLockoutCount"
+			}
+		}
+		Else {
+			Write-Host -ForegroundColor Red "[-] ResetLockoutCount is not set"	
+		}
+		
+		$LockoutDuration = $data.systemaccess.LockoutDuration
+		if ($ResetLockoutCount){
+			if ($LockoutDuration -as [int] -ge "30"){
+				Write-Host -ForegroundColor DarkGreen "[+] LockoutDuration is $LockoutDuration"
+			}
+			Else {
+				Write-Host -ForegroundColor Red "[-] LockoutDuration is $LockoutDuration"
+			}
+		}
+		Else {
+			Write-Host -ForegroundColor Red "[-] LockoutDuration is not set"	
+		}
+		Write-Host "Writing password policy to $file"
+		$data.systemaccess | Out-File $file
+		Write-Host " "
 	}
 	Else {
-		Write-Host -ForegroundColor Red "[-] LockoutDuration is not set"	
+		Write-Host -ForegroundColor Red "[-] Could not retrieve password policy"
 	}
-	Write-Host "Writing password policy to $file"
-	$data.systemaccess | Out-File $file
-	Write-Host " "
 }
 
 Function Invoke-ADCheckLAPS {
