@@ -137,8 +137,6 @@ Invoke-ADCheckAll will execute the following in order:
 - Check if the webservice client is running on accessible machines
 
 ## TO-DO & Features
-- Add check for domain functional level
-- Add checks for kerberos password policy?
 - Add check to check as who the SQL server is running
 - Add SQL query to retrieve databases of accessible SQL servers
 - Split invoke-sqlaudit into seperate checks
