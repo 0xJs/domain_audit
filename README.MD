@@ -12,6 +12,7 @@ cd ../;
 git clone https://github.com/zyn3rgy/LdapRelayScan;
 cd LdapRelayScan;
 python3 -m pip install -r .\requirements.txt
+cd ../../;
 ```
 - Make sure the path viariables in the script to the following tools are correct (if you followed the installation steps it should be)
 ```
