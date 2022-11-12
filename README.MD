@@ -33,12 +33,15 @@ $script:LdapRelayScan_Path = "$PSScriptRoot\import\LdapRelayScan\LdapRelayScan.p
 - Start PowerShell as Administrator
     - This is required to change the DNS server to DC IP and add domain to hosts file. Otherwise some checks/executions will fail such as Impacket.
 
-#### Run all checks
+### Run all checks
 ```
 PS C:\Users\user\Desktop> . C:\Tools\domain_audit\domain_audit.ps1
 PS C:\Users\user\Desktop> Invoke-ADCheckAll -Domain "amsterdam.bank.local" -User "john" -Password "Welcome2022!" -Server 10.0.0.3
 ```
 - Example output at the bottom of the page.
+
+### Run seperate checks
+- Some checks need the DNS And domain name in the host file. So best is to set that!
 
 #### Set dns and host file
 ```
