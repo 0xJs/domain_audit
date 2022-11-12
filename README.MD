@@ -48,7 +48,7 @@ PS C:\Users\user\Desktop> Invoke-ADCheckAll -Domain "amsterdam.bank.local" -User
 Invoke-ChangeDNS -Server 10.0.0.3 -Domain "amsterdam.bank.local"
 ```
 
-#### Run a specific check
+#### Run a check
 ```
 Invoke-ADEnum -Domain "amsterdam.bank.local" -User "john" -Password "Welcome2022!" -Server 10.0.0.3
 Invoke-ADEnumTrust -Domain "amsterdam.bank.local" -User "john" -Password "Welcome2022!" -Server 10.0.0.3
