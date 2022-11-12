@@ -24,7 +24,7 @@ $script:Creds = ''
 if (-not(Test-Path -Path $PowerView_Path)) {
 	Write-Host -ForegroundColor Red "$PowerView_Path Not found on the system"
 	Write-Host -ForegroundColor Red "Exiting script most functions use PowerView"
-	exit
+	break
 }
 else {
 	Import-Module -Force -Name $PowerView_Path -WarningAction silentlycontinue
