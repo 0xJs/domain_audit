@@ -1343,7 +1343,7 @@ Invoke-ADCheckPasspol -Domain 'contoso.com' -Server 'dc1.contoso.com' -User '0xj
 		}
 		
 		#Check Password complexity
-		if ($data.systemaccess.MinimumPasswordLength -as [int] -eq "1"){
+		if ($data.systemaccess.PasswordComplexity -as [int] -eq "1"){
 			Write-Host -ForegroundColor DarkGreen "[+] PasswordComplexity is equal to 1 (Enabled)"
 		}
 		else {
