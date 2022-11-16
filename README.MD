@@ -142,9 +142,6 @@ Invoke-ADCheckAll will execute the following in order:
 - Check if the webservice client is running on accessible machines
 
 ## TO-DO & Features
-- Add check to check as who the SQL server is running
-- Add SQL query to retrieve databases of accessible SQL servers
-- Split invoke-sqlaudit into seperate checks
 - Check for old vulnerable Exchange permissions
 - Check for access to discovered machines over SMB, RDP, MSSQL etc!
 - Check for admin count on users or groups which are no longer admin
