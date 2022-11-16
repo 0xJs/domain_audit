@@ -74,8 +74,12 @@ Invoke-ADCheckAll will execute the following in order:
   - Check for SQL instances in the domain
   - Check if current user has access to SQL instances
     - Check if the current user is sysadmin
-    - Run invoke-sqlaudit
+    - Gather database info on SQL instancees
+    - Check as who the SQL instance is running
     - Check for database links as sysadmin
+    - Run invoke-sqlaudit and save all data
+       - Check for weak passwords
+       - Check for Execute xp_dirtree and Execute xp_fileexist
 - Check if domain functional level is 2016
 - Check password policy configuration
     - Check for cleartextpasswords = 1
@@ -132,7 +136,9 @@ Invoke-ADCheckAll will execute the following in order:
 - Check for passwords in netlogon (scripts, programs etc)
 - Check if printspooler service is running on the DC
 - Check if LDAP signing is enabled, if LDAPS is configured and LDAPS binding is enabled
-- Check if Exchange groups exists within the domain and if there is an Exchange server
+- Check if default Exchange groups exists within the domain
+    - Check if there is an Exchange server and if its active
+    - Check for memberships in the default Exchange groups
 - Check for accessible machines
 - Checks for SMB on accessible machines
     - Check SMBv1
@@ -143,6 +149,7 @@ Invoke-ADCheckAll will execute the following in order:
 
 ## TO-DO & Features
 - Check for old vulnerable Exchange permissions
+- Change privileged role function to loop and add more roles + change DA EA check to admincount?
 - Remove -Ping function for accessible machines and execute a portscan for specific ports using Invoke-Portscan
 - Check for access to discovered machines over SMB, RDP, MSSQL etc!
 - Find a way to audit all ACL's (Invoke-ACLScanner doesnt work well from non domain joined perspective, -ResolvGUIDS breaks!)
