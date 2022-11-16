@@ -3457,7 +3457,7 @@ Required Dependencies: None
 Optional Dependencies: None
 
 .DESCRIPTION
-Checks if Exchange is installed within the domain and if there is an Exchange Server. (System part of Exchange Trusted Subsystem)
+Check for default exchange groups existence in the domain. If they do check for active exchange server and enumerate group memberships
 
 .PARAMETER Domain
 Specifies the domain to use for the query and creating outputdirectory.
@@ -3517,28 +3517,71 @@ Invoke-ADCheckExchange -Domain 'contoso.com' -Server 'dc1.contoso.com' -User '0x
 	
 	Write-Host "---Checking if exchange is used within the domain---"
 	$file = "$data_path\Exchangegroups.txt"
-	$data = Get-DomainGroup -Domain $Domain -Server $Server -Credential $Creds | Select-Object samaccountname | Where-Object samaccountname -Match Exchange
+	$data = Get-DomainGroup -Domain $Domain -Server $Server -Credential $Creds | Where-Object {$_.samaccountname -EQ "Exchange Trusted Subsystem" -or $_.samaccountname -EQ "Exchange Windows Permissions" -or $_.samaccountname -EQ "Organization management"} | Select-Object samaccountname 
 	if ($data){ 	
-			Write-Host -ForegroundColor Yellow "[+] Groups with *Exchange* in their name exist"
+			Write-Host "[+] Default Exchange groups exist"
 			Write-Host "[W] Writing to $file"
 			$data | Out-File $file
 			
-			$file = "$data_path\Exchangeservers.txt"
-			$data = Get-DomainGroupMember "Exchange Trusted Subsystem" -Domain $Domain -Server $Server -Credential $Creds -ErrorAction Silentlycontinue -WarningAction Silentlycontinue | Where-Object -Property MemberObjectClass -Match computer | Select-Object MemberName
-			if ($data){ 	
-					Write-Host -ForegroundColor Yellow "[+] Computer found which is part of Exchange Trusted Subsystem manually check for access/open mailboxes with OWA or Mailsniper"
+			Write-Host "---Checking for exchange servers---"
+			$data = Get-DomainGroupMember "Exchange Trusted Subsystem" -Domain $Domain -Server $Server -Credential $Creds -Recurse -ErrorAction Silentlycontinue -WarningAction Silentlycontinue | Where-Object -Property MemberObjectClass -Match computer | Select-Object MemberName
+			
+			$ExchangeServers = @()
+			foreach ($member in $data){
+				$ExchangeServers += Get-DomainComputer -Domain $Domain -Server $Server -Credential $Creds $member.Membername.split('$')[0]
+			}
+			
+			if ($ExchangeServers){ 	
+					$count = $ExchangeServers | Measure-Object | Select-Object -expand Count
+					Write-Host -ForeGroundColor Yellow "[+] Discovered $count Exchange servers"
+					if ($ExchangeServers.lastlogontimestamp -gt (Get-Date).AddDays(-31)){
+						$timestamp = $ExchangeServers.lastlogontimestamp
+						Write-Host -ForeGroundColor Yellow "[+] There has been a logon on the exchange server in the last 30 days: $timestamp"
+						Write-Host -ForegroundColor Yellow "[+] Manually check for access/open mailboxes with OWA or Mailsniper"
+					}
+					else {
+						Write-Host -ForegroundColor Yellow "[+] No logon within the last 31 days, might be an old server"
+					}
+					$file = "$data_path\Exchangeservers.txt"
 					Write-Host "[W] Writing to $file"
 					$data | Out-File $file
-					
 				}
 				else {
 					Write-Host -ForegroundColor DarkGreen "[+] Exchange Trusted Subsystem has no memberships, there probably is no on-prem Exchange Server"
 				}
 			Write-Host " "
 			
+		Write-Host "---Checking for Exchange Windows permissions membership---"	
+		$data = Get-DomainGroupMember -Identity "Exchange Windows Permissions" -Domain $Domain -Server $Server -Credential $Creds -Recurse -ErrorAction Silentlycontinue -WarningAction Silentlycontinue | Get-DomainUser -Domain $Domain -Server $Server -Credential $Creds -ErrorAction Silentlycontinue -WarningAction Silentlycontinue | Where-Object {!($_.memberof -match "Domain Admins" -or $_.memberof -match "Enterprise Admins")} | Select-Object samaccountname | Select-Object samaccountname
+		$file = "$data_path\Exchange_memberships_ExchangeWindowsPermissions.txt"
+		if ($data){ 
+				$count = $data | Measure-Object | Select-Object -expand Count
+				Write-Host -ForegroundColor Red "[-] There are $count users in the Exchange Windows Permissions group that aren't Domain- or Enterprise Administrators"
+				Write-Host "[W] Writing to $file"
+				$data | Out-File $file
+			}
+			else {
+				Write-Host -ForegroundColor DarkGreen "[+] There are no users in Exchange Windows Permissions"
+			}
+		Write-Host " "
+		
+		Write-Host "---Checking for Organization Management membership---"	
+		$data = Get-DomainGroupMember -Identity "Organization management" -Domain $Domain -Server $Server -Credential $Creds -Recurse -ErrorAction Silentlycontinue -WarningAction Silentlycontinue | Get-DomainUser -Domain $Domain -Server $Server -Credential $Creds -ErrorAction Silentlycontinue -WarningAction Silentlycontinue | Where-Object {!($_.memberof -match "Domain Admins" -or $_.memberof -match "Enterprise Admins")} | Select-Object samaccountname | Select-Object samaccountname
+		$file = "$data_path\Exchange_memberships_OrganizationManagement.txt"
+		if ($data){ 
+				$count = $data | Measure-Object | Select-Object -expand Count
+				Write-Host -ForegroundColor Red "[-] There are $count users in the Organization Management group that aren't Domain- or Enterprise Administrators"
+				Write-Host "[W] Writing to $file"
+				$data | Out-File $file
+			}
+			else {
+				Write-Host -ForegroundColor DarkGreen "[+] There are no users in Organization Management"
+			}
+		Write-Host " "
+		
 		}
 		else {
-			Write-Host -ForegroundColor DarkGreen "[+] No Exchange groups exist"
+			Write-Host -ForegroundColor DarkGreen "[+] No default exchange groups discovered"
 		}
 	Write-Host " "
 }
