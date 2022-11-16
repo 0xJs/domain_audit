@@ -143,9 +143,9 @@ Invoke-ADCheckAll will execute the following in order:
 
 ## TO-DO & Features
 - Check for old vulnerable Exchange permissions
+- Remove -Ping function for accessible machines and execute a portscan for specific ports using Invoke-Portscan
 - Check for access to discovered machines over SMB, RDP, MSSQL etc!
-- Check for admin count on users or groups which are no longer admin
-- Find a way to audit all ACL's (Invoke-ACLScanner doesnt work well from non domain joined perspective)
+- Find a way to audit all ACL's (Invoke-ACLScanner doesnt work well from non domain joined perspective, -ResolvGUIDS breaks!)
 - Add ADCS checks, but need to set this up in a LAB environment first.
 - Add function to skip dns change
 - Add dependancy options to each function
