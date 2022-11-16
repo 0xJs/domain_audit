@@ -1634,71 +1634,72 @@ Invoke-ADCheckLAPS -Domain 'contoso.com' -Server 'dc1.contoso.com' -User '0xjs' 
 			ForEach ($entry in $data){
 				$GPO = $entry.displayname
 				$gpcfilesyspath = $entry.gpcfilesyspath
-				$data2 = Parse-PolFile "$gpcfilesyspath\Machine\Registry.pol" | select ValueName, ValueData
-				if ($data2){ 
-						Write-Host "[+] Found LAPS password policy for $GPO"
-						$file = "$findings_path\laps_policy.txt"
-						Write-Host "[W] Writing to $file"
-						echo "$GPO" >> $file
-						$data2 | Out-File -Append $file
-						
-						# Check AdminAccountName
-						if (($data2 | Where-Object -Property ValueName -Match AdminAccountName | Select-Object ValueData).ValueData -eq $null){
-							Write-Host -ForegroundColor Yellow "[-] The LAPS local admin user is the default administrator account"
-						}
-						else {
-							Write-Host -ForegroundColor DarkGreen "[+] The LAPS local admin user is not the default administrator account"
-						}
-						
-						# Check PasswordComplexity
-						if (($data2 | Where-Object -Property ValueName -Match PasswordComplexity | Select-Object ValueData).ValueData -eq "4"){
-							Write-Host -ForegroundColor DarkGreen "[+] The password complexity is 4"
-						}
-						else {
-							Write-Host -ForegroundColor Red "[-] The password complexity is less then 4"
-						}
-						
-						# Check PasswordLength
-						if (($data2 | Where-Object -Property ValueName -Match PasswordLength | Select-Object ValueData).ValueData -eq "14"){
-							Write-Host -ForegroundColor Yellow "[+] The password length is the default 14"
-						}
-						elseif (($data2 | Where-Object -Property ValueName -Match PasswordLength | Select-Object ValueData).ValueData -lt "14") {
-							Write-Host -ForegroundColor Red "[-] The password length is less then 14"
-						}
-						elseif (($data2 | Where-Object -Property ValueName -Match PasswordLength | Select-Object ValueData).ValueData -gt "14") {
-							Write-Host -ForegroundColor DarkGreen "[+] The password length is longer then 14"
-						}
-						
-						# Check PasswordAgeDays
-						if (($data2 | Where-Object -Property ValueName -Match PasswordAgeDays | Select-Object ValueData).ValueData -eq "30"){
-							Write-Host -ForegroundColor Yellow "[+] The password age days is the default 30"
-						}
-						elseif (($data2 | Where-Object -Property ValueName -Match PasswordAgeDays | Select-Object ValueData).ValueData -lt "30") {
-							Write-Host -ForegroundColor DarkGreen "[+] The password age days is less then 30"
-						}
-						elseif (($data2 | Where-Object -Property ValueName -Match PasswordAgeDays | Select-Object ValueData).ValueData -gt "30") {
-							Write-Host -ForegroundColor Red "[-] The password age days is longer then 30"
-						}
-						
-						# Check PwdExpirationProtectionEnabled
-						if (($data2 | Where-Object -Property ValueName -Match PwdExpirationProtectionEnabled | Select-Object ValueData).ValueData -eq "1"){
-							Write-Host -ForegroundColor DarkGreen "[+] The PwdExpirationProtectionEnabled is enabled"
-						}
-						else {
-							Write-Host -ForegroundColor Red "[-] The PwdExpirationProtectionEnabled is disabled or not configured (which means disabled)"
-						}
-						
-						# Check AdmPwdEnabled
-						if (($data2 | Where-Object -Property ValueName -Match AdmPwdEnabled | Select-Object ValueData).ValueData -eq "1"){
-							Write-Host -ForegroundColor DarkGreen "[+] The LAPS policy is enabled"
-						}
-						else {
-							Write-Host -ForegroundColor Red "[-] The LAPS policy is disabled"
-						}
+				if (Test-Path -Path $gpcfilesyspath\Machine\Registry.pol -Pathtype Leaf){
+					$data2 = Parse-PolFile "$gpcfilesyspath\Machine\Registry.pol" | select ValueName, ValueData
+					Write-Host "[+] Found LAPS password policy for $GPO"
+					$file = "$findings_path\laps_policy.txt"
+					Write-Host "[W] Writing to $file"
+					echo "$GPO" >> $file
+					$data2 | Out-File -Append $file
+					
+					# Check AdminAccountName
+					if (($data2 | Where-Object -Property ValueName -Match AdminAccountName | Select-Object ValueData).ValueData -eq $null){
+						Write-Host -ForegroundColor Yellow "[-] The LAPS local admin user is the default administrator account"
 					}
 					else {
-						Write-Host -ForegroundColor Red "[-] The policy could not be found!"
+						Write-Host -ForegroundColor DarkGreen "[+] The LAPS local admin user is not the default administrator account"
 					}
+					
+					# Check PasswordComplexity
+					if (($data2 | Where-Object -Property ValueName -Match PasswordComplexity | Select-Object ValueData).ValueData -eq "4"){
+						Write-Host -ForegroundColor DarkGreen "[+] The password complexity is 4"
+					}
+					else {
+						Write-Host -ForegroundColor Red "[-] The password complexity is less then 4"
+					}
+					
+					# Check PasswordLength
+					if (($data2 | Where-Object -Property ValueName -Match PasswordLength | Select-Object ValueData).ValueData -eq "14"){
+						Write-Host -ForegroundColor Yellow "[+] The password length is the default 14"
+					}
+					elseif (($data2 | Where-Object -Property ValueName -Match PasswordLength | Select-Object ValueData).ValueData -lt "14") {
+						Write-Host -ForegroundColor Red "[-] The password length is less then 14"
+					}
+					elseif (($data2 | Where-Object -Property ValueName -Match PasswordLength | Select-Object ValueData).ValueData -gt "14") {
+						Write-Host -ForegroundColor DarkGreen "[+] The password length is longer then 14"
+					}
+					
+					# Check PasswordAgeDays
+					if (($data2 | Where-Object -Property ValueName -Match PasswordAgeDays | Select-Object ValueData).ValueData -eq "30"){
+						Write-Host -ForegroundColor Yellow "[+] The password age days is the default 30"
+					}
+					elseif (($data2 | Where-Object -Property ValueName -Match PasswordAgeDays | Select-Object ValueData).ValueData -lt "30") {
+						Write-Host -ForegroundColor DarkGreen "[+] The password age days is less then 30"
+					}
+					elseif (($data2 | Where-Object -Property ValueName -Match PasswordAgeDays | Select-Object ValueData).ValueData -gt "30") {
+						Write-Host -ForegroundColor Red "[-] The password age days is longer then 30"
+					}
+					
+					# Check PwdExpirationProtectionEnabled
+					if (($data2 | Where-Object -Property ValueName -Match PwdExpirationProtectionEnabled | Select-Object ValueData).ValueData -eq "1"){
+						Write-Host -ForegroundColor DarkGreen "[+] The PwdExpirationProtectionEnabled is enabled"
+					}
+					else {
+						Write-Host -ForegroundColor Red "[-] The PwdExpirationProtectionEnabled is disabled or not configured (which means disabled)"
+					}
+					
+					# Check AdmPwdEnabled
+					if (($data2 | Where-Object -Property ValueName -Match AdmPwdEnabled | Select-Object ValueData).ValueData -eq "1"){
+						Write-Host -ForegroundColor DarkGreen "[+] The LAPS policy is enabled"
+					}
+					else {
+						Write-Host -ForegroundColor Red "[-] The LAPS policy is disabled"
+					}
+					Write-Host " "
+				}
+				else {
+					Write-Host "[-] Could not find Registry.pol file for $GPO"
+				}
 			}
 			Write-Host " "
 		}
