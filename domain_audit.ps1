@@ -1042,7 +1042,6 @@ Start all SQL checks but skip prompt asking if the process is running as the dom
 		Import-Module $PowerView_Path
 		. $Powerupsql_Path
 		
-
 		Write-Host "---Checking MSSQL instances---"
 		$data = Get-DomainComputer -Server $Server -Credential $Creds -Domain $Domain | Where-Object serviceprincipalname -Match MSSQL | Select-Object -ExpandProperty serviceprincipalname | Select-String MSSQL
 		$count = $data | Measure-Object | Select-Object -expand Count
@@ -1068,7 +1067,6 @@ Start all SQL checks but skip prompt asking if the process is running as the dom
 				$sqlinstance = $sqlinstance -replace 'MSSQLSvc/', ''
 				
 				$null = $TblSQLServerSpns.Rows.Add($sqlinstance)
-			
 			}
 			
 			# Checking connection to MSSQL instances
@@ -1088,53 +1086,128 @@ Start all SQL checks but skip prompt asking if the process is running as the dom
 				$results | Out-File $file
 				Write-Host " "
 				
+				# Retrieving database names from sql instances
+				Write-Host "---Retrieving database names from SQL instances---"	
+				$data = $Accessible_SQLServers | Get-SQLDatabase | Select-Object Instance, DatabaseName, DataBaseOwner
+				$count = $data | Measure-Object | Select-Object -expand Count
+				$file = "$Data_Path\SQLserver_databases.txt"
+				if ($data){ 
+					$count = $data | Measure-Object | Select-Object -expand Count
+					Write-Host "[+] Gathered $count database names from the SQL instances"
+					Write-Host "[W] Writing to $file"
+					$data | Out-File $file
+				}
+				Write-Host " "
+				
 				# Checking if the user is sysadmin on the instance
 				Write-Host "---Checking if the user is sysadmin on the accessible instances---"	
-				$accessible_sql = $results | Where-Object -Property status -Like Accessible | Get-SQLServerInfo
-				$data = $accessible_sql | Where-Object -Property IsSysadmin -Match Yes
+				$data = $Accessible_SQLServers | Get-SQLServerInfo | Sort-Object -Property Instance -Unique
+				$data2 = $data | Where-Object -Property IsSysadmin -Match Yes
 				$file = "$Findings_Path\SQLserver_user_issysadmin.txt"
-				if ($data.IsSysadmin -match "Yes"){ 
-						$count = $data | Measure-Object | Select-Object -expand Count
-						Write-Host -ForegroundColor Red "[-] The current user is sysadmin to $count MSSQL instances"
-						Write-Host "[W] Writing to $file"
-						$data | Out-File $file
-					}
-					else {
-						Write-Host -ForegroundColor DarkGreen "[+] The current user is not sysdmin to any SQL instances"
-					}
+				if ($data2.IsSysadmin -match "Yes"){ 
+					$count = $data | Measure-Object | Select-Object -expand Count
+					Write-Host -ForegroundColor Red "[-] The current user is sysadmin to $count MSSQL instances"
+					Write-Host "[W] Writing to $file"
+					$data | Out-File $file
+				}
+				else {
+					Write-Host -ForegroundColor DarkGreen "[+] The current user is not sysdmin to any SQL instances"
+				}
+				Write-Host " "
+				
+				# Checking as who the SQL Server is running
+				Write-Host "---Checking as who the SQL Server is running---"
+				# Create a short domain name of the currentlogin user
+				$shortdomain = ($data.Currentlogin |Sort-Object -Unique).split('\')[0]
+				# Check if serviceaccount is running as domain user or group managed service account
+				$data2 = $data | Where-Object {$_.ServiceAccount -Match $shortdomain -and $_.ServiceAccount -NotMatch '$'} | Select-Object -Property Instance, ServiceAccount | Sort-Object -Property Instance -Unique
+				$data3 = $data | Where-Object {$_.ServiceAccount -Match '$'} | Select-Object -Property Instance, ServiceAccount | Sort-Object -Property Instance -Unique
+				
+				if ($data2){
+					$count = $data2 | Measure-Object | Select-Object -expand Count
+					Write-Host -ForegroundColor Red "[-] There are $count SQL servers running with a domain user account"
+					$file = "$Findings_Path\SQLserver_running_with_domainuser.txt"
+					Write-Host "[W] Writing to $file"
+					$data2 | Out-File $file
+				}
+				elseif ($data3) {
+					$count = $data3 | Measure-Object | Select-Object -expand Count
+					Write-Host -ForegroundColor Red "[-] There are $count SQL servers running with a group managed service account"
+					$file = "$Findings_Path\SQLserver_running_with_gsma.txt"
+					Write-Host "[W] Writing to $file"
+					$data3 | Out-File $file
+				}
+				else {
+					Write-Host -ForegroundColor DarkGreen "[+] No SQL servers running with a domain user or group managed service account"
+				}
 				Write-Host " "
 						
 				# Check SQL Server database links
 				Write-Host "---Checking database links for sysadmin security context---"	
-				$data = $results | Where-Object -Property status -Like Accessible | Get-SQLServerLinkCrawl | Where-Object -Property  sysadmin -Match 1
+				$data = $Accessible_SQLServers | Get-SQLServerLinkCrawl | Where-Object -Property  sysadmin -Match 1
 				$file = "$Findings_Path\SQLserver_sysadmin_on_links.txt"
 				if ($data){ 
-						$count = $data | Measure-Object | Select-Object -expand Count
-						Write-Host -ForegroundColor Red "[-] There are $count links which run under the security context of a sysadmin user"
-						Write-Host "[W] Writing to $file"
-						$data | Out-File $file
-					}
-					else {
-						Write-Host -ForegroundColor DarkGreen "[+] There are no links which run under the security context of a sysadmin user"
-					}
+					$count = $data | Measure-Object | Select-Object -expand Count
+					Write-Host -ForegroundColor Red "[-] There are $count links which run under the security context of a sysadmin user"
+					Write-Host "[W] Writing to $file"
+					$data | Out-File $file
+				}
+				else {
+					Write-Host -ForegroundColor DarkGreen "[+] There are no links which run under the security context of a sysadmin user"
+				}
 				Write-Host " "
 				
 				# Audit SQL instances
 				Write-Host "---Running Invoke-SQLAudit on the accessible instances---"
 				Write-Host "This might take a while"
-				$data = $results | Where-Object -Property status -Like Accessible | Invoke-SQLAudit -ErrorAction silentlycontinue
-				$file = "$Findings_Path\SQLserver_sqlaudit.txt"
-				if ($data){ 
-						$count = $data | Measure-Object | Select-Object -expand Count
-						Write-Host -ForegroundColor Red "[-] Invoke-SQLAudit found $count issues"
-						Write-Host "[W] Writing to $file"
-						$data | Out-File $file
-					}
-					else {
-						Write-Host -ForegroundColor DarkGreen "[+] Invoke-SQLAudit didn't found anything"
-					}
+				$data = $Accessible_SQLServers | Invoke-SQLAudit -ErrorAction silentlycontinue 4>$null
+				$file = "$Findings_Path\SQLserver_sqlaudit_all.txt"
+				if ($data){
+					$count = $data | Measure-Object | Select-Object -expand Count
+					Write-Host -ForegroundColor Red "[-] Invoke-SQLAudit found $count issues"
+					Write-Host "[W] Writing to $file"
+					$data | Out-File $file
+				}
+				else {
+					Write-Host -ForegroundColor DarkGreen "[+] Invoke-SQLAudit didn't found anything"
+				}
+								
+				$data2 = $data | Where-Object -Property Vulnerability -Match "Execute xp_dirtree" | Select-Object Instance
+				$file = "$Findings_Path\SQLserver_sqlaudit_xpdirtree.txt"
+				if ($data2){
+					$count = $data2 | Measure-Object | Select-Object -expand Count
+					Write-Host -ForegroundColor Red "[-] Execute xp_dirtree available on $count instances"
+					Write-Host "[W] Writing to $file"
+					$data2 | Out-File $file
+				}
+				else {
+					Write-Host -ForegroundColor DarkGreen "[+] Execute xp_dirtree not available"
+				}
+				
+				$data2 = $data | Where-Object -Property Vulnerability -Match "Execute xp_fileexist" | Select-Object Instance
+				$file = "$Findings_Path\SQLserver_sqlaudit_xpfileexist.txt"
+				if ($data2){
+					$count = $data2 | Measure-Object | Select-Object -expand Count
+					Write-Host -ForegroundColor Red "[-] Execute xp_fileexist available on $count instances"
+					Write-Host "[W] Writing to $file"
+					$data2 | Out-File $file
+				}
+				else {
+					Write-Host -ForegroundColor DarkGreen "[+] Execute xp_fileexist not available"
+				}
+				
+				$data2 = $data | Where-Object -Property Vulnerability -Match "Weak Login Password"
+				$file = "$Findings_Path\SQLserver_sqlaudit_WeakLoginPassword.txt"
+				if ($data2){
+					$count = $data2 | Measure-Object | Select-Object -expand Count
+					Write-Host -ForegroundColor Red "[-] Discovered $count Weak Login Passwords"
+					Write-Host "[W] Writing to $file"
+					$data2 | Out-File $file
+				}
+				else {
+					Write-Host -ForegroundColor DarkGreen "[+] No Weak Login Passwords discovered"
+				}
 				Write-Host " "
-			
 			}
 			else {
 			Write-Host -ForegroundColor DarkGreen "[+] The current user can't access any MSSQL instances"	
@@ -1143,7 +1216,6 @@ Start all SQL checks but skip prompt asking if the process is running as the dom
 		else {
 			Write-Host -ForegroundColor DarkGreen "[+] There are no SQL instances"
 		}
-		
 	}
 	elseif ($confirmation -eq 'n') {
 		$confirmation = Read-Host "Do you want to start the runas process with the credentials provided ? y/n"
