@@ -79,7 +79,7 @@ Required Dependencies: All
 Optional Dependencies: None
 
 .DESCRIPTION
-<DESCRIPTION>
+Runs all domain audit checks
 
 .PARAMETER Domain
 Specifies the domain to use for the query and creating outputdirectory.
