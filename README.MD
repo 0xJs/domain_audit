@@ -149,7 +149,7 @@ Invoke-ADCheckAll will execute the following in order:
 
 ## TO-DO & Features
 - Check for old vulnerable Exchange permissions
-- Change privileged role function to loop and add more roles + change DA EA check to admincount?
+- Change privileged role function to loop and add more roles
 - Remove -Ping function for accessible machines and execute a portscan for specific ports using Invoke-Portscan
 - Check for access to discovered machines over SMB, RDP, MSSQL etc!
 - Find a way to audit all ACL's (Invoke-ACLScanner doesnt work well from non domain joined perspective, -ResolvGUIDS breaks!)
