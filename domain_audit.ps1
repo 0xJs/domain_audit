@@ -1120,8 +1120,8 @@ Start all SQL checks but skip prompt asking if the process is running as the dom
 				# Create a short domain name of the currentlogin user
 				$shortdomain = ($data.Currentlogin |Sort-Object -Unique).split('\')[0]
 				# Check if serviceaccount is running as domain user or group managed service account
-				$data2 = $data | Where-Object {$_.ServiceAccount -Match $shortdomain -and $_.ServiceAccount -NotMatch '$'} | Select-Object -Property Instance, ServiceAccount | Sort-Object -Property Instance -Unique
-				$data3 = $data | Where-Object {$_.ServiceAccount -Match '$'} | Select-Object -Property Instance, ServiceAccount | Sort-Object -Property Instance -Unique
+				$data2 = $data | Where-Object {$_.ServiceAccount -Match $shortdomain -and $_.ServiceAccount -NotMatch '$'} | Select-Object -Property Instance, ServiceAccount
+				$data3 = $data | Where-Object {$_.ServiceAccount -Match '$'} | Select-Object -Property Instance, ServiceAccount
 				
 				if ($data2){
 					$count = $data2 | Measure-Object | Select-Object -expand Count
