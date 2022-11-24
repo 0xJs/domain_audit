@@ -3764,7 +3764,7 @@ Invoke-ADCheckLDAP -Server 'dc1.contoso.com' -User '0xjs' -Password 'Password01!
 		Write-Host -ForegroundColor DarkGreen "[+] The domain controller(s) enforces LDAP signing"
 	}
 	else {
-		Write-Hoost -ForeGroundColor Yellow "[-] Something went wrong please manually check"
+		Write-Host -ForeGroundColor Yellow "[-] Something went wrong please manually check"
 	}
 	Write-Host " "
 	
@@ -3783,7 +3783,7 @@ Invoke-ADCheckLDAP -Server 'dc1.contoso.com' -User '0xjs' -Password 'Password01!
 		Write-Host -ForegroundColor Yellow "[-] LDAPS not (properly) configured"
 	}
 	else {
-		Write-Hoost -ForeGroundColor Yellow "[-] Something went wrong please manually check"
+		Write-Host -ForeGroundColor Yellow "[-] Something went wrong please manually check"
 	}
 	Write-Host " "
 }
