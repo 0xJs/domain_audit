@@ -2791,7 +2791,7 @@ Invoke-ADCheckPrivilegedObjects -Domain 'contoso.com' -Server 'dc1.contoso.com' 
 			$count = $data | Measure-Object | Select-Object -expand Count
 			Write-Host -ForegroundColor Red "[-] There are $count users in the DNS Admins group that aren't Domain- or Enterprise Administrators"
 			Write-Host "[W] Writing to $file"
-			"Print Operators" | Out-File $file -Append
+			"DNS Admins" | Out-File $file -Append
 			$data | Out-File $file -Append
 		}
 		else {
@@ -2803,11 +2803,50 @@ Invoke-ADCheckPrivilegedObjects -Domain 'contoso.com' -Server 'dc1.contoso.com' 
 			$count = $data | Measure-Object | Select-Object -expand Count
 			Write-Host -ForegroundColor Red "[-] There are $count users in the Schema Admins group that aren't Domain- or Enterprise Administrators"
 			Write-Host "[W] Writing to $file"
-			"Backup Operators" | Out-File $file -Append
+			"Schema admins" | Out-File $file -Append
 			$data | Out-File $file -Append
 		}
 		else {
 			Write-Host -ForegroundColor DarkGreen "[+] There are no users in the Schema Admins group"
+		}
+	Write-Host " "
+	
+	$data = Get-DomainGroup -Domain $Domain -Server $Server -Credential $Creds "Remote Management Users" | Get-DomainGroupMember -Domain $Domain -Server $Server -Credential $Creds -Recurse | Get-DomainUser -Domain $Domain -Server $Server -Credential $Creds | Where-Object {!($_.memberof -match "Domain Admins" -or $_.memberof -match "Enterprise Admins")} | Select-Object samaccountname
+	if ($data){ 
+			$count = $data | Measure-Object | Select-Object -expand Count
+			Write-Host -ForegroundColor Red "[-] There are $count users in the Remote Management Users group that aren't Domain- or Enterprise Administrators"
+			Write-Host "[W] Writing to $file"
+			"Remote Management Users" | Out-File $file -Append
+			$data | Out-File $file -Append
+		}
+		else {
+			Write-Host -ForegroundColor DarkGreen "[+] There are no users in the Remote Management Users group"
+		}
+	Write-Host " "
+	
+	$data = Get-DomainGroup -Domain $Domain -Server $Server -Credential $Creds "Group Policy Creators" | Get-DomainGroupMember -Domain $Domain -Server $Server -Credential $Creds -Recurse | Get-DomainUser -Domain $Domain -Server $Server -Credential $Creds | Where-Object {!($_.memberof -match "Domain Admins" -or $_.memberof -match "Enterprise Admins")} | Select-Object samaccountname
+	if ($data){ 
+			$count = $data | Measure-Object | Select-Object -expand Count
+			Write-Host -ForegroundColor Red "[-] There are $count users in the Group Policy Creators group that aren't Domain- or Enterprise Administrators"
+			Write-Host "[W] Writing to $file"
+			"Group Policy Creators" | Out-File $file -Append
+			$data | Out-File $file -Append
+		}
+		else {
+			Write-Host -ForegroundColor DarkGreen "[+] There are no users in the Group Policy Creators group"
+		}
+	Write-Host " "
+	
+	$data = Get-DomainGroup -Domain $Domain -Server $Server -Credential $Creds "Hyper-V Administrators" | Get-DomainGroupMember -Domain $Domain -Server $Server -Credential $Creds -Recurse | Get-DomainUser -Domain $Domain -Server $Server -Credential $Creds | Where-Object {!($_.memberof -match "Domain Admins" -or $_.memberof -match "Enterprise Admins")} | Select-Object samaccountname
+	if ($data){ 
+			$count = $data | Measure-Object | Select-Object -expand Count
+			Write-Host -ForegroundColor Red "[-] There are $count users in the Hyper-V Administrators group that aren't Domain- or Enterprise Administrators"
+			Write-Host "[W] Writing to $file"
+			"Hyper-V Administrators" | Out-File $file -Append
+			$data | Out-File $file -Append
+		}
+		else {
+			Write-Host -ForegroundColor DarkGreen "[+] There are no users in the Hyper-V Administrators group"
 		}
 	Write-Host " "
 	
