@@ -2849,6 +2849,19 @@ Invoke-ADCheckPrivilegedObjects -Domain 'contoso.com' -Server 'dc1.contoso.com' 
 			Write-Host -ForegroundColor DarkGreen "[+] There are no users in the Hyper-V Administrators group"
 		}
 	Write-Host " "
+
+	$data = Get-DomainGroup -Domain $Domain -Server $Server -Credential $Creds "Enterprise Key Admins" | Get-DomainGroupMember -Domain $Domain -Server $Server -Credential $Creds -Recurse | Get-DomainUser -Domain $Domain -Server $Server -Credential $Creds | Where-Object {!($_.memberof -match "Domain Admins" -or $_.memberof -match "Enterprise Admins")} | Select-Object samaccountname
+	if ($data){ 
+			$count = $data | Measure-Object | Select-Object -expand Count
+			Write-Host -ForegroundColor Red "[-] There are $count users in the Enterprise Key Admins group that aren't Domain- or Enterprise Administrators"
+			Write-Host "[W] Writing to $file"
+			"Enterprise Key Admins" | Out-File $file -Append
+			$data | Out-File $file -Append
+		}
+		else {
+			Write-Host -ForegroundColor DarkGreen "[+] There are no users in the Enterprise Key Admins group"
+		}
+	Write-Host " "
 	
 	# Check if there is a computer part of a high privileged group
 	Write-Host "---Checking if there are computerobjects part of high privileged groups---"
