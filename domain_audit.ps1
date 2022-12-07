@@ -690,7 +690,7 @@ Execute all basic enumeration steps but skip BloudHound
 	$data = Get-Content $data_path\list_administrators.txt | sort-object -Unique
 	$admincount = $data | Measure-object | Select-Object -expand Count
 	$file = "$findings_path\large_amount_of_administrators.txt"
-	$percentage = ($admincount / $usercount ) * 100
+	$percentage = ($admincount / $usercountenabled ) * 100
 	$percentage_admins = [math]::Round($percentage,2)
 	$thresholdpercentage = 5
 	
