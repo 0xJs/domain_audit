@@ -2430,7 +2430,7 @@ Invoke-ADCheckUserAttributes -Domain 'contoso.com' -Server 'dc1.contoso.com' -Us
 	# Check for KRBTGT with old password
 	Write-Host "---Checking if KRBTGT account has a password older then 365 days---"
 	$data = Get-DomainUser -Domain $Domain -Server $Server -Credential $Creds krbtgt | Where-Object {$_.pwdlastset -lt (Get-Date).AddDays(-365)} | Select-Object samaccountname, pwdlastset 
-	$file = "$findings_path\olpassword_krbtgt.txt"
+	$file = "$findings_path\oldpassword_krbtgt.txt"
 	if ($data){ 
 			Write-Host -ForegroundColor Red "[-] The password from the krbtgt is older then 365 days"
 			Write-Host "[W] Writing to $file"
