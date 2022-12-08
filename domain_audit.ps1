@@ -1132,8 +1132,8 @@ Start all SQL checks but skip prompt asking if the process is running as the dom
 				}
 				elseif ($data3) {
 					$count = $data3 | Measure-Object | Select-Object -expand Count
-					Write-Host -ForegroundColor Red "[-] There are $count SQL servers running with a group managed service account"
-					$file = "$Findings_Path\SQLserver_running_with_gsma.txt"
+					Write-Host -ForegroundColor Red "[-] There are $count SQL servers running with a group managed service account or computeraccount"
+					$file = "$Findings_Path\SQLserver_running_with_gsma_orcomputeraccount.txt"
 					Write-Host "[W] Writing to $file"
 					$data3 | Out-File $file
 				}
