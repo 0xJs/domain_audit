@@ -2192,7 +2192,7 @@ Invoke-ADCheckDelegation -Domain 'contoso.com' -Server 'dc1.contoso.com' -User '
 	Write-Host " "
 	
 	# Check for unconstrained delegation user
-	Write-Host "---Checking unconstrained delegation computerobjects, excluding domain-controllers---"	
+	Write-Host "---Checking unconstrained delegation users-"	
 	$data = Get-DomainUser -Domain $Domain -Server $Server -Credential $Creds | Where-Object -Property useraccountcontrol -Match TRUSTED_FOR_DELEGATION | Select-Object samaccountname | Sort-Object -Property samaccountname
 	$file = "$findings_path\users_unconstrained_delegation.txt"
 	if ($data){ 
