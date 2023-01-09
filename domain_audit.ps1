@@ -1120,25 +1120,19 @@ Start all SQL checks but skip prompt asking if the process is running as the dom
 				# Create a short domain name of the currentlogin user
 				$shortdomain = ($data.Currentlogin |Sort-Object -Unique).split('\')[0]
 				# Check if serviceaccount is running as domain user or group managed service account
-				$data2 = $data | Where-Object {$_.ServiceAccount -Match $shortdomain -and $_.ServiceAccount -NotMatch '$'} | Select-Object -Property Instance, ServiceAccount
-				$data3 = $data | Where-Object {$_.ServiceAccount -Match '`$'} | Select-Object -Property Instance, ServiceAccount
+				$data2 = $data | Where-Object {$_.ServiceAccount -Match $shortdomain} | Select-Object -Property Instance, ServiceAccount
+				$data3 = $data | Where-Object {$_.ServiceAccount -eq 'LocalSystem'} | Select-Object -Property Instance, ServiceAccount
 				
 				if ($data2){
 					$count = $data2 | Measure-Object | Select-Object -expand Count
-					Write-Host -ForegroundColor Red "[-] There are $count SQL servers running with a domain user account"
-					$file = "$Findings_Path\SQLserver_running_with_domainuser.txt"
+					Write-Host -ForegroundColor Red "[-] There are $count SQL servers running as a domain user or GMSA account"
+					$file = "$Findings_Path\SQLserver_running_with_domainuser_or_GSMA.txt"
 					Write-Host "[W] Writing to $file"
 					$data2 | Out-File $file
 				}
-				elseif ($data3) {
+				if ($data3) {
 					$count = $data3 | Measure-Object | Select-Object -expand Count
-					Write-Host -ForegroundColor Red "[-] There are $count SQL servers running with a group managed service account or computeraccount"
-					$file = "$Findings_Path\SQLserver_running_with_gsma_orcomputeraccount.txt"
-					Write-Host "[W] Writing to $file"
-					$data3 | Out-File $file
-				}
-				else {
-					Write-Host -ForegroundColor DarkGreen "[+] No SQL servers running with a domain user or group managed service account"
+					Write-Host -ForegroundColor Red "[-] There are $count SQL servers running as LocalSystem"
 				}
 				Write-Host " "
 						
