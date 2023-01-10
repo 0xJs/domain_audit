@@ -5,8 +5,9 @@ Author Jony Schats - 0xjs
 # PLEASE EDIT THESE VARIABLES BEFORE YOU RUN!
 $script:PowerView_Path = "$PSScriptRoot\import\PowerView.ps1"
 $script:Powerupsql_Path = "$PSScriptRoot\import\PowerUpSQL.ps1"
-$script:Impacket_Path = "$PSScriptRoot\import\impacket"
+$script:PowerMad_Path = "$PSScriptRoot\import\Powermad.ps1"
 $script:BloodHound_Path = "$PSScriptRoot\import\Sharphound.ps1"
+$script:Impacket_Path = "$PSScriptRoot\import\impacket"
 $script:GpRegisteryPolicy_Path = "$PSScriptRoot\import\GPRegistryPolicy\GPRegistryPolicy.psd1"
 $script:CME_Path = "$PSScriptRoot\import\cme"
 $script:LdapRelayScan_Path = "$PSScriptRoot\import\LdapRelayScan\LdapRelayScan.py"
@@ -46,6 +47,15 @@ if (-not(Test-Path -Path $GpRegisteryPolicy_Path)) {
 }
 else {
 	Import-Module -Force -Name $GpRegisteryPolicy_Path -WarningAction silentlycontinue
+}
+
+if (-not(Test-Path -Path $PowerMad_Path)) {
+	Write-Host -ForegroundColor Red "$PowerMad_Path_Path doesn't exist. Please check the file and path variables in the script."
+	Write-Host -ForegroundColor Red "Won't be able to check ADIDNS"
+	Write-Host " "
+}
+else {
+	Import-Module -Force -Name $PowerMad_Path -WarningAction silentlycontinue
 }
 
 if (-not(Test-Path -Path $Impacket_Path\examples\GetUserSPNs.py)) {
@@ -153,7 +163,7 @@ Start ADChecks with all modules
 	Test-ADAuthentication -Domain $Domain -Server $Server -User $User -Password $Password | Out-Null
 	
 	if ($User -ne $Creds.Username) {
-		Create-CredentialObject -User $User -Password $Password
+		Create-CredentialObject -User $User -Password $Password -Domain $Domain
 		
 		if ($PSBoundParameters['OutputDirectory']) {
 		New-OutputDirectory -Domain $Domain -OutputDirectory $OutputDirectory
@@ -219,17 +229,19 @@ Start ADChecks with all modules
 
 		Invoke-ADCheckDomainJoin -Domain $Domain -Server $Server -User $User -Password $Password
 		
+		Invoke-ADCheckADIDNS -Domain $Domain -Server $Server -User $User -Password $Password
+		
 		Invoke-ADCheckPreWindows2000Group -Domain $Domain -Server $Server -User $User -Password $Password
-		
-		Invoke-ADCheckSysvolPassword -Domain $Domain -Server $Server -User $User -Password $Password
-		
-		Invoke-ADCheckNetlogonPassword -Domain $Domain -Server $Server -User $User -Password $Password
 		
 		Invoke-ADCheckPrintspoolerDC -Domain $Domain -Server $Server -User $User -Password $Password
 		
 		Invoke-ADCheckLDAP -Domain $Domain -Server $Server -User $User -Password $Password
 		
 		Invoke-ADCheckExchange -Domain $Domain -Server $Server -User $User -Password $Password
+		
+		Invoke-ADCheckSysvolPassword -Domain $Domain -Server $Server -User $User -Password $Password
+		
+		Invoke-ADCheckNetlogonPassword -Domain $Domain -Server $Server -User $User -Password $Password
 		
 		Invoke-ADCheckSMB -Domain $Domain -Server $Server -User $User -Password $Password
 		
@@ -252,6 +264,9 @@ Optional Dependencies: None
 .DESCRIPTION
 Creates a credential object using the username and password supplied.
 
+.PARAMETER Domain
+Specifies the domain to use for the query and creating outputdirectory.
+
 .PARAMETER User
 Specifies the username to use for the query.
 
@@ -259,12 +274,16 @@ Specifies the username to use for the query.
 Specifies the Password in combination with the username to use for the query.
 
 .EXAMPLE
-Create-CredentialObject -User '0xjs' -Password 'Password01!'
+Create-CredentialObject -User '0xjs' -Password 'Password01!' -Domain Contoso.com
 #>	
 
 	#Parameters
 	[CmdletBinding()]
 	Param(
+		[Parameter(Mandatory=$true,HelpMessage="Enter a domain name here, e.g. contoso.com")]
+		[ValidateNotNullOrEmpty()]
+		[string]$Domain,
+	
 		[Parameter(Mandatory=$true,HelpMessage="Enter the username to connect with")]
 		[ValidateNotNullOrEmpty()]
 		[string]$User,
@@ -273,10 +292,11 @@ Create-CredentialObject -User '0xjs' -Password 'Password01!'
 		[ValidateNotNullOrEmpty()]
 		[string]$Password
 	)
-
+	
+	$Domain_User = $Domain + "\" + $User
 	Write-Verbose "[+] Function Create-CredentialObject"
 	$SecurePassword = ConvertTo-SecureString -String $Password -AsPlainText -Force
-	$script:Creds = New-Object System.Management.Automation.PSCredential($User, $SecurePassword)
+	$script:Creds = New-Object System.Management.Automation.PSCredential($Domain_User, $SecurePassword)
 	Write-Verbose "[+] Created credential object with username $User"
 }
 
@@ -617,7 +637,7 @@ Execute all basic enumeration steps but skip BloudHound
 	}
 	
 	if ($User -ne $Creds.Username) {
-		Create-CredentialObject -User $User -Password $Password
+		Create-CredentialObject -User $User -Password $Password -Domain $Domain
 	}
 	
 	Write-Host "---------- GATHERING DATA ----------"
@@ -803,7 +823,7 @@ Enumerate trusts for contoso.com and save output in C:\temp\
 	}
 	
 	if ($User -ne $Creds.Username) {
-		Create-CredentialObject -User $User -Password $Password
+		Create-CredentialObject -User $User -Password $Password -Domain $Domain
 	}	
 	
 	# Check if the domain functional level is 2016
@@ -828,7 +848,7 @@ Enumerate trusts for contoso.com and save output in C:\temp\
 	if ($DomainFunctionalLevel -Notlike "Windows 2016"){
 		Write-Host -ForegroundColor Red "[+] The domain functional level is $DomainFunctionalLevel"
 		Write-Host "[W] Writing to $file"
-		$data | Out-File $file
+		$DomainData | Out-File $file
 	}
 	else {
 		Write-Host -ForegroundColor DarkGreen "[+] The domain functional level is $DomainFunctionalLevel"
@@ -904,7 +924,7 @@ Enumerate trusts for contoso.com and save output in C:\temp\
 	}
 	
 	if ($User -ne $Creds.Username) {
-		Create-CredentialObject -User $User -Password $Password
+		Create-CredentialObject -User $User -Password $Password -Domain $Domain
 	}	
 	
 	# Enumerating trusts
@@ -1025,7 +1045,7 @@ Start all SQL checks but skip prompt asking if the process is running as the dom
 	}
 	
 	if ($User -ne $Creds.Username) {
-		Create-CredentialObject -User $User -Password $Password
+		Create-CredentialObject -User $User -Password $Password -Domain $Domain
 	}	
 	
 	# A way to skipt the prompt asking if its running in the other user's context
@@ -1284,7 +1304,7 @@ Invoke-ADEnumAzure -Domain 'contoso.com' -Server 'dc1.contoso.com' -User '0xjs' 
 	}
 	
 	if ($User -ne $Creds.Username) {
-		Create-CredentialObject -User $User -Password $Password
+		Create-CredentialObject -User $User -Password $Password -Domain $Domain
 	}
 	
 	Write-Host "---Checking if AzureAD connect is in use---"
@@ -1377,7 +1397,7 @@ Invoke-ADCheckPasspol -Domain 'contoso.com' -Server 'dc1.contoso.com' -User '0xj
 	}
 	
 	if ($User -ne $Creds.Username) {
-		Create-CredentialObject -User $User -Password $Password
+		Create-CredentialObject -User $User -Password $Password -Domain $Domain
 	}	
 	
 	Write-Host "---Checking password policy---"
@@ -1525,7 +1545,7 @@ Invoke-ADCheckPasspolKerberos -Domain 'contoso.com' -Server 'dc1.contoso.com' -U
 	}
 	
 	if ($User -ne $Creds.Username) {
-		Create-CredentialObject -User $User -Password $Password
+		Create-CredentialObject -User $User -Password $Password -Domain $Domain
 	}	
 	
 	Write-Host "---Checking password policy Kerberos---"
@@ -1655,7 +1675,7 @@ Invoke-ADCheckLAPS -Domain 'contoso.com' -Server 'dc1.contoso.com' -User '0xjs' 
 	}
 	
 	if ($User -ne $Creds.Username) {
-		Create-CredentialObject -User $User -Password $Password
+		Create-CredentialObject -User $User -Password $Password -Domain $Domain
 	}	
 
 	# Checking LAPS existence + configuration
@@ -1891,7 +1911,7 @@ Invoke-ADCheckDescriptions -Domain 'contoso.com' -Server 'dc1.contoso.com' -User
 	}
 	
 	if ($User -ne $Creds.Username) {
-		Create-CredentialObject -User $User -Password $Password
+		Create-CredentialObject -User $User -Password $Password -Domain $Domain
 	}	
 	
 	# Usernames with description, possible passwords
@@ -2025,7 +2045,7 @@ Does only enumeration and skips the execution of impacket
 	}
 	
 	if ($User -ne $Creds.Username) {
-		Create-CredentialObject -User $User -Password $Password
+		Create-CredentialObject -User $User -Password $Password -Domain $Domain
 	}	
 	
 	# Check if Administrator accounts has SPN set (kerberoasting)
@@ -2167,7 +2187,7 @@ Invoke-ADCheckDelegation -Domain 'contoso.com' -Server 'dc1.contoso.com' -User '
 	}
 	
 	if ($User -ne $Creds.Username) {
-		Create-CredentialObject -User $User -Password $Password
+		Create-CredentialObject -User $User -Password $Password -Domain $Domain
 	}	
 
 	# Check for constrained delegation users
@@ -2317,7 +2337,7 @@ Invoke-ADCheckUserAttributes -Domain 'contoso.com' -Server 'dc1.contoso.com' -Us
 	}
 	
 	if ($User -ne $Creds.Username) {
-		Create-CredentialObject -User $User -Password $Password
+		Create-CredentialObject -User $User -Password $Password -Domain $Domain
 	}	
 	
 	$data = Get-DomainUser -Domain $Domain -Server $Server -Credential $Creds
@@ -2500,7 +2520,7 @@ Invoke-ADCheckOutdatedComputers -Domain 'contoso.com' -Server 'dc1.contoso.com' 
 	}
 	
 	if ($User -ne $Creds.Username) {
-		Create-CredentialObject -User $User -Password $Password
+		Create-CredentialObject -User $User -Password $Password -Domain $Domain
 	}	
 	
 	# Checking for EOL operating systems in the AD
@@ -2609,7 +2629,7 @@ Invoke-ADCheckInactiveObjects -Domain 'contoso.com' -Server 'dc1.contoso.com' -U
 	}
 	
 	if ($User -ne $Creds.Username) {
-		Create-CredentialObject -User $User -Password $Password
+		Create-CredentialObject -User $User -Password $Password -Domain $Domain
 	}	
 	
 	# Checking for inactive computerobjects that have no login or login/pwdlastset older then 365 days
@@ -2708,7 +2728,7 @@ Invoke-ADCheckPrivilegedObjects -Domain 'contoso.com' -Server 'dc1.contoso.com' 
 	}
 	
 	if ($User -ne $Creds.Username) {
-		Create-CredentialObject -User $User -Password $Password
+		Create-CredentialObject -User $User -Password $Password -Domain $Domain
 	}	
 
 	# Check if all privileged users are part of the protected users group
@@ -2803,7 +2823,6 @@ Invoke-ADCheckPrivilegedObjects -Domain 'contoso.com' -Server 'dc1.contoso.com' 
 		else {
 			Write-Host -ForegroundColor DarkGreen "[+] There are no users in the Schema Admins group"
 		}
-	Write-Host " "
 	
 	$data = Get-DomainGroup -Domain $Domain -Server $Server -Credential $Creds "Remote Management Users" | Get-DomainGroupMember -Domain $Domain -Server $Server -Credential $Creds -Recurse | Get-DomainUser -Domain $Domain -Server $Server -Credential $Creds | Where-Object {!($_.memberof -match "Domain Admins" -or $_.memberof -match "Enterprise Admins")} | Select-Object samaccountname
 	if ($data){ 
@@ -2816,7 +2835,6 @@ Invoke-ADCheckPrivilegedObjects -Domain 'contoso.com' -Server 'dc1.contoso.com' 
 		else {
 			Write-Host -ForegroundColor DarkGreen "[+] There are no users in the Remote Management Users group"
 		}
-	Write-Host " "
 	
 	$data = Get-DomainGroup -Domain $Domain -Server $Server -Credential $Creds "Group Policy Creators" | Get-DomainGroupMember -Domain $Domain -Server $Server -Credential $Creds -Recurse | Get-DomainUser -Domain $Domain -Server $Server -Credential $Creds | Where-Object {!($_.memberof -match "Domain Admins" -or $_.memberof -match "Enterprise Admins")} | Select-Object samaccountname
 	if ($data){ 
@@ -2829,7 +2847,6 @@ Invoke-ADCheckPrivilegedObjects -Domain 'contoso.com' -Server 'dc1.contoso.com' 
 		else {
 			Write-Host -ForegroundColor DarkGreen "[+] There are no users in the Group Policy Creators group"
 		}
-	Write-Host " "
 	
 	$data = Get-DomainGroup -Domain $Domain -Server $Server -Credential $Creds "Hyper-V Administrators" | Get-DomainGroupMember -Domain $Domain -Server $Server -Credential $Creds -Recurse | Get-DomainUser -Domain $Domain -Server $Server -Credential $Creds | Where-Object {!($_.memberof -match "Domain Admins" -or $_.memberof -match "Enterprise Admins")} | Select-Object samaccountname
 	if ($data){ 
@@ -2842,7 +2859,6 @@ Invoke-ADCheckPrivilegedObjects -Domain 'contoso.com' -Server 'dc1.contoso.com' 
 		else {
 			Write-Host -ForegroundColor DarkGreen "[+] There are no users in the Hyper-V Administrators group"
 		}
-	Write-Host " "
 
 	$data = Get-DomainGroup -Domain $Domain -Server $Server -Credential $Creds "Enterprise Key Admins" | Get-DomainGroupMember -Domain $Domain -Server $Server -Credential $Creds -Recurse | Get-DomainUser -Domain $Domain -Server $Server -Credential $Creds | Where-Object {!($_.memberof -match "Domain Admins" -or $_.memberof -match "Enterprise Admins")} | Select-Object samaccountname
 	if ($data){ 
@@ -2936,7 +2952,7 @@ Invoke-ADCheckDomainJoin -Domain 'contoso.com' -Server 'dc1.contoso.com' -User '
 	}
 	
 	if ($User -ne $Creds.Username) {
-		Create-CredentialObject -User $User -Password $Password
+		Create-CredentialObject -User $User -Password $Password -Domain $Domain
 	}	
 
 	# Check who can add computerobjects to the domain
@@ -3048,7 +3064,7 @@ Invoke-ADCheckReachableComputers -Domain 'contoso.com' -Server 'dc1.contoso.com'
 	}
 	
 	if ($User -ne $Creds.Username) {
-		Create-CredentialObject -User $User -Password $Password
+		Create-CredentialObject -User $User -Password $Password -Domain $Domain
 	}	
 	
 	# Check if there are reachable computers
@@ -3137,19 +3153,20 @@ Invoke-ADCheckSysvolPassword -Domain 'contoso.com' -Server 'dc1.contoso.com' -Us
 	}
 	
 	if ($User -ne $Creds.Username) {
-		Create-CredentialObject -User $User -Password $Password
+		Create-CredentialObject -User $User -Password $Password -Domain $Domain
 	}	
 
 	# Look through sysvol on each domain controller for the string password in all *xml files
 	Write-Host "---Checking if there are passwords in the SYSVOL share---"
 	Write-Host "This might take a while"
 	$file = "$checks_path\sysvol_passwords.txt"
-	$data = Get-DomainController -Domain $Domain -Server $Server -Credential $Creds
 	ForEach ($dc in $data){
 		$name = $dc.name
 		$hostname = $dc.dnshostname
 		Write-Host "[+] Checking SYSVOL of $name"
-		New-PSDrive -Name $dc.name -PSProvider FileSystem -Root \\$hostname\SYSVOL -Credential $Creds | out-null
+		New-PSDrive -Name $name -PSProvider FileSystem -Root \\$hostname\SYSVOL -Credential $Creds | out-null 
+	$data = Get-DomainController -Domain $Domain -Server $Server -Credential $Creds
+		
 		$data = Get-ChildItem -Recurse -Path \\$hostname\SYSVOL\$Domain\Policies\*.xml -ErrorAction silentlycontinue | Select-String -Pattern "password"
 		if ($data){ 
 			$count = $data | Measure-Object | Select-Object -expand Count
@@ -3227,7 +3244,7 @@ Invoke-ADCheckNetlogonPassword -Domain 'contoso.com' -Server 'dc1.contoso.com' -
 	}
 	
 	if ($User -ne $Creds.Username) {
-		Create-CredentialObject -User $User -Password $Password
+		Create-CredentialObject -User $User -Password $Password -Domain $Domain
 	}	
 
 	# Look through Netlogon on each domain controller for the string password in all *xml files
@@ -3462,7 +3479,7 @@ Invoke-ADCheckPrintspoolerDC -Domain 'contoso.com' -Server 'dc1.contoso.com' -Us
 	)
 
 	if ($User -ne $Creds.Username) {
-		Create-CredentialObject -User $User -Password $Password
+		Create-CredentialObject -User $User -Password $Password -Domain $Domain
 	}	
 
 	if ($OutputDirectoryCreated -ne $true) {
@@ -3503,7 +3520,7 @@ Required Dependencies: None
 Optional Dependencies: None
 
 .DESCRIPTION
-Check for default exchange groups existence in the domain. If they do check for active exchange server and enumerate group memberships
+Check for default Exchange groups existence in the domain. If they do check for active Exchange server and enumerate group memberships
 
 .PARAMETER Domain
 Specifies the domain to use for the query and creating outputdirectory.
@@ -3549,7 +3566,7 @@ Invoke-ADCheckExchange -Domain 'contoso.com' -Server 'dc1.contoso.com' -User '0x
 	)
 
 	if ($User -ne $Creds.Username) {
-		Create-CredentialObject -User $User -Password $Password
+		Create-CredentialObject -User $User -Password $Password -Domain $Domain
 	}	
 
 	if ($OutputDirectoryCreated -ne $true) {
@@ -3561,7 +3578,7 @@ Invoke-ADCheckExchange -Domain 'contoso.com' -Server 'dc1.contoso.com' -User '0x
 		}
 	}
 	
-	Write-Host "---Checking if exchange is used within the domain---"
+	Write-Host "---Checking if Exchange is used within the domain---"
 	$file = "$data_path\Exchangegroups.txt"
 	$data = Get-DomainGroup -Domain $Domain -Server $Server -Credential $Creds | Where-Object {$_.samaccountname -EQ "Exchange Trusted Subsystem" -or $_.samaccountname -EQ "Exchange Windows Permissions" -or $_.samaccountname -EQ "Organization management"} | Select-Object samaccountname 
 	if ($data){ 	
@@ -3569,7 +3586,7 @@ Invoke-ADCheckExchange -Domain 'contoso.com' -Server 'dc1.contoso.com' -User '0x
 			Write-Host "[W] Writing to $file"
 			$data | Out-File $file
 			
-			Write-Host "---Checking for exchange servers---"
+			Write-Host "---Checking for Exchange servers---"
 			$data = Get-DomainGroupMember "Exchange Trusted Subsystem" -Domain $Domain -Server $Server -Credential $Creds -Recurse -ErrorAction Silentlycontinue -WarningAction Silentlycontinue | Where-Object -Property MemberObjectClass -Match computer | Select-Object MemberName
 			
 			$ExchangeServers = @()
@@ -3582,7 +3599,7 @@ Invoke-ADCheckExchange -Domain 'contoso.com' -Server 'dc1.contoso.com' -User '0x
 					Write-Host -ForeGroundColor Yellow "[+] Discovered $count Exchange servers"
 					if ($ExchangeServers.lastlogontimestamp -gt (Get-Date).AddDays(-31)){
 						$timestamp = $ExchangeServers.lastlogontimestamp
-						Write-Host -ForeGroundColor Yellow "[+] There has been a logon on the exchange server in the last 30 days: $timestamp"
+						Write-Host -ForeGroundColor Yellow "[+] There has been a logon on the Exchange server in the last 30 days: $timestamp"
 						Write-Host -ForegroundColor Yellow "[+] Manually check for access/open mailboxes with OWA or Mailsniper"
 					}
 					else {
@@ -3627,7 +3644,7 @@ Invoke-ADCheckExchange -Domain 'contoso.com' -Server 'dc1.contoso.com' -User '0x
 		
 		}
 		else {
-			Write-Host -ForegroundColor DarkGreen "[+] No default exchange groups discovered"
+			Write-Host -ForegroundColor DarkGreen "[+] No default Exchange groups discovered"
 		}
 	Write-Host " "
 }
@@ -3686,7 +3703,7 @@ Invoke-ADCheckWebclient -Domain 'contoso.com' -Server 'dc1.contoso.com' -User '0
 	)
 
 	if ($User -ne $Creds.Username) {
-		Create-CredentialObject -User $User -Password $Password
+		Create-CredentialObject -User $User -Password $Password -Domain $Domain
 	}	
 
 	if ($OutputDirectoryCreated -ne $true) {
@@ -3888,7 +3905,7 @@ Invoke-ADCheckPreWindows2000Group -Server 'dc1.contoso.com' -User '0xjs' -Passwo
 	)
 	
 	if ($User -ne $Creds.Username) {
-		Create-CredentialObject -User $User -Password $Password
+		Create-CredentialObject -User $User -Password $Password -Domain $Domain
 	}
 	
 	if ($OutputDirectoryCreated -ne $true) {
@@ -3918,6 +3935,115 @@ Invoke-ADCheckPreWindows2000Group -Server 'dc1.contoso.com' -User '0xjs' -Passwo
 		}
 		else {
 			Write-Host -ForegroundColor DarkGreen "[+] Pre-Windows 2000 Compatible Access has no memberships"
+		}
+	Write-Host " "
+}
+
+Function Invoke-ADCheckADIDNS {
+<#
+.SYNOPSIS
+Author: Jony Schats - 0xjs
+Required Dependencies: Invoke-ADCheckADIDNS 
+Optional Dependencies: None
+
+.DESCRIPTION
+Checks if the authenticated users can add ADIDNS records and checks for existence of wildcard record.
+
+.PARAMETER Domain
+Specifies the domain to use for the query and creating outputdirectory.
+
+.PARAMETER Server
+Specifies an Active Directory server IP to bind to, e.g. 10.0.0.1
+
+.PARAMETER User
+Specifies the username to use for the query.
+
+.PARAMETER Password
+Specifies the Password in combination with the username to use for the query.
+
+.PARAMETER OutputDirectory
+Specifies the path to use for the output directory, defaults to the current directory.
+
+.EXAMPLE
+Invoke-ADCheckADIDNS -Domain 'contoso.com' -Server 'dc1.contoso.com' -User '0xjs' -Password 'Password01!'
+#>
+
+	#Parameters
+	[CmdletBinding()]
+	Param(
+		[Parameter(Mandatory=$true,HelpMessage="Enter a domain name here, e.g. contoso.com")]
+		[ValidateNotNullOrEmpty()]
+		[string]$Domain,
+		
+		[Parameter(Mandatory=$true,HelpMessage="Enter a IP of a domain controller here, e.g. 10.0.0.1")]
+		[ValidateNotNullOrEmpty()]
+		[string]$Server,
+		
+		[Parameter(Mandatory=$true,HelpMessage="Enter the username to connect with")]
+		[ValidateNotNullOrEmpty()]
+		[string]$User,
+		
+		[Parameter(Mandatory=$true,HelpMessage="Enter the password of the user")]
+		[ValidateNotNullOrEmpty()]
+		[string]$Password,
+		
+		[Parameter(Mandatory=$false)]
+		[ValidateNotNullOrEmpty()]
+		[string]$OutputDirectory
+	)
+
+	if ($User -ne $Creds.Username) {
+		Create-CredentialObject -User $User -Password $Password -Domain $Domain
+	}	
+
+	if ($OutputDirectoryCreated -ne $true) {
+		if ($PSBoundParameters['OutputDirectory']) {
+			New-OutputDirectory -Domain $Domain -OutputDirectory $OutputDirectory
+			}
+			else {
+				New-OutputDirectory -Domain $Domain
+		}
+	}
+	
+	Write-Host "---Checking ADIDNS permissions---"
+	$data = Get-ADIDNSPermission -Credential $Creds -Domain $Domain -DomainController $Server -Zone $Domain
+	
+	#Saving ADIDNS Permission data
+	$file = "$data_path\ADIDNS_permissions.txt"
+	Write-Host "[W] Writing all data to $file"
+	$data | Out-File -Encoding utf8 $file	
+	Write-Host " "
+	
+	$data2 = $data | Where-Object -Property IdentityReference -EQ S-1-5-11 | Where-Object -Property ActiveDirectoryRights -EQ CreateChild
+	$file = "$findings_path\ADIDNS_authenticated_users.txt"
+	if ($data2){ 
+			Write-Host -ForegroundColor Red "[-] The authenticated users group(S-1-5-11) can add DNS Records"
+			Write-Host "[W] Writing to $file"
+			$data2 | Out-File $file
+			$bool_ADIDNS_pois = $true
+		}
+		else {
+			Write-Host -ForegroundColor DarkGreen "[+] The authenticated users group(S-1-5-11) can not add DNS Records"
+			Write-Host -ForegroundColor Yellow "[+] Manually check the ADIDNS Permissions in $data_path\ADIDNS_permissions.txt"
+		}
+	Write-Host " "
+	
+	Write-Host "---Checking ADIDNS wildcard record---"
+	$data = Get-ADIDNSNodeAttribute -Node '*' -Attribute DNSRecord -Credential $Creds -Domain $Domain -DomainController $Server -Zone $Domain
+	$file = "$findings_path\ADIDNS_wildcard_record.txt"
+	if ($data -Match "There is no such object on the server"){ 
+			$bool_ADIDNS_wildcard = $false
+			Write-Host -ForegroundColor Red "[-] No wildcard record in ADIDNS"
+			
+			if ($bool_ADIDNS_pois -eq $true -and $bool_ADIDNS_wildcard -eq $false){
+				Write-Host -ForegroundColor Red "[-] ADIDNS poisoning with wildcard possible"
+			}
+			
+			Write-Host "[W] Writing to $file"
+			$data | Out-File $file
+		}
+		else {
+			Write-Host -ForegroundColor DarkGreen "[+] Wildcard record in ADIDNS exists"
 		}
 	Write-Host " "
 }
