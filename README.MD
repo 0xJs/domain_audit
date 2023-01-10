@@ -131,14 +131,17 @@ Invoke-ADCheckAll will execute the following in order:
 - Check who can add computerobjects to the domain
     - Check if this is the default authenticated users group
     - Check what the ms-ds-machineaccountqouta is, if it is null(good) or not-set(bad) or another value.
+- Check ADIDNS 
+    - if it contains createchild for the authenticated users group
+    - If wildcard record exists
 - Check membership of Pre-Windows 2000 Compatible Access group and if authenticated users is still member of it
-- Check for passwords in the sysvol
-- Check for passwords in netlogon (scripts, programs etc)
 - Check if printspooler service is running on the DC
 - Check if LDAP signing is enabled, if LDAPS is configured and LDAPS binding is enabled
 - Check if default Exchange groups exists within the domain
     - Check if there is an Exchange server and if its active
     - Check for memberships in the default Exchange groups
+- Check for passwords in the sysvol
+- Check for passwords in netlogon (scripts, programs etc)
 - Check for accessible machines
 - Checks for SMB on accessible machines
     - Check SMBv1
