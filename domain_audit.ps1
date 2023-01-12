@@ -2748,7 +2748,7 @@ Invoke-ADCheckPrivilegedObjects -Domain 'contoso.com' -Server 'dc1.contoso.com' 
 	
 	# Check if all privileged users have the flag "this account is sensitive and cannot be delegated"
 	Write-Host "---Checking if members of privileged groups have the flag 'this account is sensitive and cannot be delegated'---"
-	$data = Get-DomainGroup -AdminCount -Domain $Domain -Server $Server -Credential $Creds | Get-DomainGroupMember -Domain $Domain -Server $Server -Credential $Creds -Recurse -ErrorAction silentlycontinue | Get-DomainUser -Domain $Domain -Server $Server -Credential $Creds -Allowdelegation | Where-Object {!($_.memberof -match "Protected Users")} | Select-Object samaccountname | Sort-object samaccountname -Unique
+	$data = Get-DomainGroup -AdminCount -Domain $Domain -Server $Server -Credential $Creds | Get-DomainGroupMember -Domain $Domain -Server $Server -Credential $Creds -Recurse -ErrorAction silentlycontinue | Get-DomainUser -Domain $Domain -Server $Server -Credential $Creds | Where-Object {!($_.memberof -match "Protected Users")} | Where-Object {$_.useraccountcontrol -notmatch "NOT_DELEGATED"} | Select-Object samaccountname | Sort-object samaccountname -Unique
 	$file = "$findings_path\administrators_delegation_flag.txt"
 	if ($data){ 
 			$count = $data | Measure-Object | Select-Object -expand Count
