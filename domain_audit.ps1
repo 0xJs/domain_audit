@@ -688,12 +688,27 @@ Execute all basic enumeration steps but skip BloudHound
 	
 	$file = "$Data_Path\list_administrators.txt"
 	Write-Host "[W] Saving a list of all administrators to $file"
-	$data = Get-DomainGroup -AdminCount -Domain $Domain -Server $Server -Credential $Creds | Get-DomainGroupMember -Domain $Domain -Server $Server -Credential $Creds -Recurse -ErrorAction silentlycontinue | Get-DomainUser -Domain $Domain -Server $Server -Credential $Creds | Select-Object samaccountname | Sort-object samaccountname -Unique | Out-File $file
+	$data = Get-DomainGroupMember -Domain $Domain -Server $Server -Credential $Creds "Domain Admins" -Recurse | Get-DomainUser -Domain $Domain -Server $Server -Credential $Creds | Select-Object samaccountname | Format-Table -Autosize 
+	$data += Get-DomainGroupMember -Domain $Domain -Server $Server -Credential $Creds "Enterprise Admins" -Recurse | Get-DomainUser -Domain $Domain -Server $Server -Credential $Creds | Select-Object samaccountname | Format-Table -Autosize 
+	$data += Get-DomainGroupMember -Domain $Domain -Server $Server -Credential $Creds "Administrators"  -Recurse | Get-DomainUser -Domain $Domain -Server $Server -Credential $Creds | Select-Object samaccountname | Format-Table -Autosize 
+	$data | Out-File $file
+	$data = Get-Content $file
+	$data = $data | Sort-Object -Unique 
+	$data = $data -replace 'samaccountname', '' -replace '-', '' -replace 'serviceprincipalname', '' #remove strings
+	$data = $data.Trim() | ? {$_.trim() -ne "" } #Remove spaces and white lines
+	$data = $data | Sort-Object -Unique
+	$data | Out-File $file
+	
+	$file = "$Data_Path\list_privileged_users.txt"
+	Write-Host "[W] Saving a list of all privileged users to $file"
+	$data = Get-DomainGroup -AdminCount -Domain $Domain -Server $Server -Credential $Creds | Get-DomainGroupMember -Domain $Domain -Server $Server -Credential $Creds -Recurse -ErrorAction silentlycontinue | Get-DomainUser -Domain $Domain -Server $Server -Credential $Creds | Select-Object samaccountname | Sort-object samaccountname -Unique 
+	$privusercount = $data | Measure-object | Select-Object -expand Count
+	$data = $data | Out-File $file
 	$data = Get-Content $file 
 	$data = $data -replace 'samaccountname', '' -replace '--------------', '' #remove strings
 	$data = $data.Trim() | ? {$_.trim() -ne "" } #Remove spaces and white lines
 	$data = $data | Sort-Object -Unique
-	$data = $data | Out-File $file
+	$data | Out-File $file
 	
 	Write-Host "[W] Saving a list of all groups to $Data_Path\list_groups.txt"
 	Import-Csv $Data_Path\data_groups.csv | Select-Object samaccountname | Sort-Object -Property samaccountname | Out-File $Data_Path\list_groups.txt
@@ -733,6 +748,7 @@ Execute all basic enumeration steps but skip BloudHound
 	Write-Host "- $oucount OU's"
 	Write-Host "- $gpocount GPO's"
 	Write-Host "- $admincount Administrators"
+	Write-Host "- $privusercount Privileged users"
 	Write-Host "- $dccount Domain Controllers"
 	Write-Host " "
 	
@@ -2045,18 +2061,18 @@ Does only enumeration and skips the execution of impacket
 	}	
 	
 	# Check if Administrator accounts has SPN set (kerberoasting)
-	Write-Host "---Checking kerberoastable administrators---"
+	Write-Host "---Checking kerberoastable privileged users---"
 	$file = "$findings_path\administrators_serviceprincipalname.txt"
 	$data = Get-DomainGroup -AdminCount -Domain $Domain -Server $Server -Credential $Creds | Get-DomainGroupMember -Domain $Domain -Server $Server -Credential $Creds -Recurse -ErrorAction silentlycontinue | Get-DomainUser -Domain $Domain -Server $Server -Credential $Creds -SPN | Select-Object samaccountname, serviceprincipalname | Sort-object samaccountname -Unique
 		
 	if ($data){ 
 			$count = $data | Measure-Object | Select-Object -expand Count
-			Write-Host -ForegroundColor Red "[-] There are $count kerberoastable administrators"
+			Write-Host -ForegroundColor Red "[-] There are $count kerberoastable privileged users"
 			Write-Host "[W] Writing to $file"
 			$data | Out-File $file
 		}
 		else {
-			Write-Host -ForegroundColor DarkGreen "[+] There are no kerberoastable administrators"
+			Write-Host -ForegroundColor DarkGreen "[+] There are no kerberoastable privileged users"
 		}
 	Write-Host " "
 	
