@@ -688,16 +688,7 @@ Execute all basic enumeration steps but skip BloudHound
 	
 	$file = "$Data_Path\list_administrators.txt"
 	Write-Host "[W] Saving a list of all administrators to $file"
-	$data = Get-DomainGroupMember -Domain $Domain -Server $Server -Credential $Creds "Domain Admins" -Recurse | Get-DomainUser -Domain $Domain -Server $Server -Credential $Creds | Select-Object samaccountname | Format-Table -Autosize 
-	$data += Get-DomainGroupMember -Domain $Domain -Server $Server -Credential $Creds "Enterprise Admins" -Recurse | Get-DomainUser -Domain $Domain -Server $Server -Credential $Creds | Select-Object samaccountname | Format-Table -Autosize 
-	$data += Get-DomainGroupMember -Domain $Domain -Server $Server -Credential $Creds "Administrators"  -Recurse | Get-DomainUser -Domain $Domain -Server $Server -Credential $Creds | Select-Object samaccountname | Format-Table -Autosize 
-	$data | Out-File $file
-	$data = Get-Content $file
-	$data = $data | Sort-Object -Unique 
-	$data = $data -replace 'samaccountname', '' -replace '-', '' -replace 'serviceprincipalname', '' #remove strings
-	$data = $data.Trim() | ? {$_.trim() -ne "" } #Remove spaces and white lines
-	$data = $data | Sort-Object -Unique
-	$data | Out-File $file
+	$data = Get-DomainGroup -AdminCount -Domain $Domain -Server $Server -Credential $Creds | Get-DomainGroupMember -Domain $Domain -Server $Server -Credential $Creds -Recurse -ErrorAction silentlycontinue | Get-DomainUser -Domain $Domain -Server $Server -Credential $Creds | Select-Object samaccountname | Sort-object samaccountname -Unique | Out-File $file
 	
 	Write-Host "[W] Saving a list of all groups to $Data_Path\list_groups.txt"
 	Import-Csv $Data_Path\data_groups.csv | Select-Object samaccountname | Sort-Object -Property samaccountname | Out-File $Data_Path\list_groups.txt
@@ -2051,16 +2042,9 @@ Does only enumeration and skips the execution of impacket
 	# Check if Administrator accounts has SPN set (kerberoasting)
 	Write-Host "---Checking kerberoastable administrators---"
 	$file = "$findings_path\administrators_serviceprincipalname.txt"
-	$data = Get-DomainGroupMember -Domain $Domain -Server $Server -Credential $Creds "Domain Admins" -Recurse | Get-DomainUser -Domain $Domain -Server $Server -Credential $Creds -SPN | Select-Object samaccountname, serviceprincipalname | Format-Table -Autosize 
-	$data += Get-DomainGroupMember -Domain $Domain -Server $Server -Credential $Creds "Enterprise Admins" -Recurse | Get-DomainUser -Domain $Domain -Server $Server -Credential $Creds -SPN | Select-Object samaccountname, serviceprincipalname | Format-Table -Autosize 
-	$data += Get-DomainGroupMember -Domain $Domain -Server $Server -Credential $Creds "Administrators" -Recurse | Get-DomainUser -Domain $Domain -Server $Server -Credential $Creds -SPN | Select-Object samaccountname, serviceprincipalname | Format-Table -Autosize 
-	
+	Get-DomainGroup -AdminCount -Domain $Domain -Server $Server -Credential $Creds | Get-DomainGroupMember -Domain $Domain -Server $Server -Credential $Creds -Recurse -ErrorAction silentlycontinue | Get-DomainUser -Domain $Domain -Server $Server -Credential $Creds -SPN | Select-Object samaccountname, serviceprincipalname | Sort-object samaccountname -Unique
+		
 	if ($data){ 
-			$data | Out-File $file
-			$data = Get-Content $file
-			$data = $data | Sort-Object -Unique 
-			$data = $data -replace 'samaccountname', '' -replace '--------------------', '' -replace '--------------', '' -replace 'serviceprincipalname', '' #remove strings
-			$data = $data.Trim() | ? {$_.trim() -ne "" } #Remove spaces and white lines
 			$count = $data | Measure-Object | Select-Object -expand Count
 			Write-Host -ForegroundColor Red "[-] There are $count kerberoastable administrators"
 			Write-Host "[W] Writing to $file"
@@ -2419,25 +2403,18 @@ Invoke-ADCheckUserAttributes -Domain 'contoso.com' -Server 'dc1.contoso.com' -Us
 	Write-Host " "
 	
 	# Check for Domain admins with old password
-	Write-Host "---Checking if administrator accounts - that aren't disabled - have a password older then 365 days---"
+	Write-Host "---Checking if administrator accounts (privileged users) - that aren't disabled - have a password older then 365 days---"
 	$file = "$findings_path\oldpassword_administrators.txt"
-	$data = Get-DomainGroupMember -Domain $Domain -Server $Server -Credential $Creds "Domain Admins" -Recurse | Get-DomainUser -Domain $Domain -Server $Server -Credential $Creds | Where-Object {$_.pwdlastset -lt (Get-Date).AddDays(-365) -and $_.useraccountcontrol -notmatch "ACCOUNTDISABLE"} | Select-Object samaccountname, pwdlastset | Format-Table -Autosize | Out-File $file
-	$data += Get-DomainGroupMember -Domain $Domain -Server $Server -Credential $Creds "Enterprise Admins" -Recurse | Get-DomainUser -Domain $Domain -Server $Server -Credential $Creds | Where-Object {$_.pwdlastset -lt (Get-Date).AddDays(-365) -and $_.useraccountcontrol -notmatch "ACCOUNTDISABLE"} | Select-Object samaccountname, pwdlastset | Format-Table -Autosize | Out-File -Append $file
-	$data += Get-DomainGroupMember -Domain $Domain -Server $Server -Credential $Creds "Administrators" -Recurse | Get-DomainUser -Domain $Domain -Server $Server -Credential $Creds | Where-Object {$_.pwdlastset -lt (Get-Date).AddDays(-365) -and $_.useraccountcontrol -notmatch "ACCOUNTDISABLE"} | Select-Object samaccountname, pwdlastset | Format-Table -Autosize | Out-File -Append $file
+	$data = Get-DomainGroup -AdminCount -Domain $Domain -Server $Server -Credential $Creds | Get-DomainGroupMember -Domain $Domain -Server $Server -Credential $Creds -Recurse -ErrorAction silentlycontinue | Get-DomainUser -Domain $Domain -Server $Server -Credential $Creds | Where-Object {$_.pwdlastset -lt (Get-Date).AddDays(-365) -and $_.useraccountcontrol -notmatch "ACCOUNTDISABLE"} | Select-Object samaccountname, pwdlastset | Sort-object samaccountname -Unique 
 	
 	if ($data){ 
-			$data | Out-File $file
-			$data = Get-Content $file
-			$data = $data | Sort-Object -Unique 
-			$data = $data -replace 'samaccountname', '' -replace '--------------', '' #remove strings
-			$data = $data.Trim() | ? {$_.trim() -ne "" } #Remove spaces and white lines
 			$count = $data | Measure-Object | Select-Object -expand Count
-			Write-Host -ForegroundColor Red "[-] There are $count enabled administrators with a password older then 365 days!"
+			Write-Host -ForegroundColor Red "[-] There are $count enabled privileged users with a password older then 365 days!"
 			Write-Host "[W] Writing to $file"
 			$data | Out-File $file
 		}
 		else {
-			Write-Host -ForegroundColor DarkGreen "[+] There where no enabled administrators with a password older then 365 days"
+			Write-Host -ForegroundColor DarkGreen "[+] There where no enabled privileged users with a password older then 365 days"
 		}
 	Write-Host " "
 	
