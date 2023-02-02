@@ -151,6 +151,8 @@ Invoke-ADCheckAll will execute the following in order:
 - Check if the webservice client is running on accessible machines
 
 ## TO-DO & Features
+- Update queries/checks for domain admin/enterprise admins to all privileged groups.
+- Update queries to filter disabled users from data.
 - Check for old vulnerable Exchange permissions
 - Change privileged role function to loop and add more roles
 - Remove -Ping function for accessible machines and execute a portscan for specific ports using Invoke-Portscan
