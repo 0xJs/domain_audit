@@ -189,10 +189,10 @@ Start ADChecks with all modules
 		Write-Host "---------- EXECUTING CHECKS ----------"
 		
 		Write-Host "[+] Executing in another window because runas is required"
-		Write-Host -ForegroundColor Yellow "[+] Pleace manually supply the Password $Password"
+		Write-Host -ForegroundColor Yellow "[+] Please manually supply the Password $Password"
 		
 		"--- Running SQL checks in new window ---"
-		runas /noprofile /env /netonly /user:$Domain\$User "powershell.exe -Exec bypass -NoExit Import-Module $PSCommandPath; Set-Variable Findings_Path -Value $OutputDirectory_Path\findings; Set-Variable Data_Path -Value $OutputDirectory_Path\data; Set-Variable Checks_Path -Value $OutputDirectory_Path\checks; Set-Variable OutputDirectoryCreated -Value $OutputDirectoryCreated; Invoke-ADCheckSQL -Domain $Domain -Server $Server -User $User -Password $Password -SkipPrompt"
+		runas /noprofile /env /netonly /user:$Domain\$User "powershell.exe -Exec bypass -NoExit Import-Module $PSCommandPath; Set-Variable Findings_Path -Value $OutputDirectory_Path\findings; Set-Variable Data_Path -Value $OutputDirectory_Path\data; Set-Variable Checks_Path -Value $OutputDirectory_Path\checks; Set-Variable OutputDirectoryCreated -Value $OutputDirectoryCreated; Invoke-ADCheckSQL -Domain $Domain -Server $Server -User $User -Password '$Password' -SkipPrompt"
 		Write-Host " "
 		
 		Invoke-ADCheckDomainFunctionalLevel -Domain $Domain -Server $Server -User $User -Password $Password
@@ -645,7 +645,7 @@ Execute all basic enumeration steps but skip BloudHound
 	
 	if (-Not $PSBoundParameters['SkipBloodHound']) {
 		Write-Host "[+] Gathering BloodHound data all, session and ACL in seperate PowerShell session in background"
-		Invoke-Expression "cmd /c start powershell -WindowStyle hidden -Command {Import-Module $script:BloodHound_Path; Invoke-BloodHound -CollectionMethod all -Domain $Domain -DomainController $Server -LdapUsername $User -LdapPassword $Password -OutputDirectory $Data_Path; Invoke-BloodHound -CollectionMethod session -Domain $Domain -DomainController $Server -LdapUsername $User -LdapPassword $Password -OutputDirectory $Data_Path; Invoke-BloodHound -CollectionMethod acl -Domain $Domain -DomainController $Server -LdapUsername $User -LdapPassword $Password -OutputDirectory $Data_Path}"
+		Invoke-Expression "cmd /c start powershell -WindowStyle hidden -Command {Import-Module $script:BloodHound_Path; Invoke-BloodHound -CollectionMethod all -Domain $Domain -DomainController $Server -LdapUsername $User -LdapPassword '$Password' -OutputDirectory $Data_Path; Invoke-BloodHound -CollectionMethod session -Domain $Domain -DomainController $Server -LdapUsername $User -LdapPassword '$Password' -OutputDirectory $Data_Path; Invoke-BloodHound -CollectionMethod acl -Domain $Domain -DomainController $Server -LdapUsername $User -LdapPassword '$Password' -OutputDirectory $Data_Path}"
 	}
 	
 	Write-Verbose "[+] Gathering data of domain object"
@@ -699,6 +699,17 @@ Execute all basic enumeration steps but skip BloudHound
 	$data = $data | Sort-Object -Unique
 	$data | Out-File $file
 	
+	$file = "$Data_Path\list_privileged_users.txt"
+	Write-Host "[W] Saving a list of all privileged users to $file"
+	$data = Get-DomainGroup -AdminCount -Domain $Domain -Server $Server -Credential $Creds | Get-DomainGroupMember -Domain $Domain -Server $Server -Credential $Creds -Recurse -ErrorAction silentlycontinue | Get-DomainUser -Domain $Domain -Server $Server -Credential $Creds | Select-Object samaccountname | Sort-object samaccountname -Unique 
+	$privusercount = $data | Measure-object | Select-Object -expand Count
+	$data = $data | Out-File $file
+	$data = Get-Content $file 
+	$data = $data -replace 'samaccountname', '' -replace '--------------', '' #remove strings
+	$data = $data.Trim() | ? {$_.trim() -ne "" } #Remove spaces and white lines
+	$data = $data | Sort-Object -Unique
+	$data | Out-File $file
+	
 	Write-Host "[W] Saving a list of all groups to $Data_Path\list_groups.txt"
 	Import-Csv $Data_Path\data_groups.csv | Select-Object samaccountname | Sort-Object -Property samaccountname | Out-File $Data_Path\list_groups.txt
 	
@@ -737,6 +748,7 @@ Execute all basic enumeration steps but skip BloudHound
 	Write-Host "- $oucount OU's"
 	Write-Host "- $gpocount GPO's"
 	Write-Host "- $admincount Administrators"
+	Write-Host "- $privusercount Privileged users"
 	Write-Host "- $dccount Domain Controllers"
 	Write-Host " "
 	
@@ -1235,8 +1247,8 @@ Start all SQL checks but skip prompt asking if the process is running as the dom
 		$confirmation = Read-Host "Do you want to start the runas process with the credentials provided ? y/n"
 		if ($confirmation -eq 'y') {
 			Write-Host "[+] Executing in another window because runas is required"
-			Write-Host -ForegroundColor Yellow "[+] Pleace manually supply the Password $Password"
-			runas /noprofile /env /netonly /user:$Domain\$User "powershell.exe -Exec bypass -NoExit Import-Module $PSCommandPath; Set-Variable Findings_Path -Value $OutputDirectory_Path\findings; Set-Variable Data_Path -Value $OutputDirectory_Path\data; Set-Variable Checks_Path -Value $OutputDirectory_Path\checks; Set-Variable OutputDirectoryCreated -Value $OutputDirectoryCreated; Invoke-ADCheckSQL -Domain $Domain -Server $Server -User $User -Password $Password -SkipPrompt"
+			Write-Host -ForegroundColor Yellow "[+] Please manually supply the Password $Password"
+			runas /noprofile /env /netonly /user:$Domain\$User "powershell.exe -Exec bypass -NoExit Import-Module $PSCommandPath; Set-Variable Findings_Path -Value $OutputDirectory_Path\findings; Set-Variable Data_Path -Value $OutputDirectory_Path\data; Set-Variable Checks_Path -Value $OutputDirectory_Path\checks; Set-Variable OutputDirectoryCreated -Value $OutputDirectoryCreated; Invoke-ADCheckSQL -Domain $Domain -Server $Server -User $User -Password '$Password' -SkipPrompt"
 		}
 	}
 }
@@ -2049,25 +2061,18 @@ Does only enumeration and skips the execution of impacket
 	}	
 	
 	# Check if Administrator accounts has SPN set (kerberoasting)
-	Write-Host "---Checking kerberoastable administrators---"
+	Write-Host "---Checking kerberoastable privileged users---"
 	$file = "$findings_path\administrators_serviceprincipalname.txt"
-	$data = Get-DomainGroupMember -Domain $Domain -Server $Server -Credential $Creds "Domain Admins" -Recurse | Get-DomainUser -Domain $Domain -Server $Server -Credential $Creds -SPN | Select-Object samaccountname, serviceprincipalname | Format-Table -Autosize 
-	$data += Get-DomainGroupMember -Domain $Domain -Server $Server -Credential $Creds "Enterprise Admins" -Recurse | Get-DomainUser -Domain $Domain -Server $Server -Credential $Creds -SPN | Select-Object samaccountname, serviceprincipalname | Format-Table -Autosize 
-	$data += Get-DomainGroupMember -Domain $Domain -Server $Server -Credential $Creds "Administrators" -Recurse | Get-DomainUser -Domain $Domain -Server $Server -Credential $Creds -SPN | Select-Object samaccountname, serviceprincipalname | Format-Table -Autosize 
-	
+	$data = Get-DomainGroup -AdminCount -Domain $Domain -Server $Server -Credential $Creds | Get-DomainGroupMember -Domain $Domain -Server $Server -Credential $Creds -Recurse -ErrorAction silentlycontinue | Get-DomainUser -Domain $Domain -Server $Server -Credential $Creds -SPN | Select-Object samaccountname, serviceprincipalname | Sort-object samaccountname -Unique
+		
 	if ($data){ 
-			$data | Out-File $file
-			$data = Get-Content $file
-			$data = $data | Sort-Object -Unique 
-			$data = $data -replace 'samaccountname', '' -replace '--------------------', '' -replace '--------------', '' -replace 'serviceprincipalname', '' #remove strings
-			$data = $data.Trim() | ? {$_.trim() -ne "" } #Remove spaces and white lines
 			$count = $data | Measure-Object | Select-Object -expand Count
-			Write-Host -ForegroundColor Red "[-] There are $count kerberoastable administrators"
+			Write-Host -ForegroundColor Red "[-] There are $count kerberoastable privileged users"
 			Write-Host "[W] Writing to $file"
 			$data | Out-File $file
 		}
 		else {
-			Write-Host -ForegroundColor DarkGreen "[+] There are no kerberoastable administrators"
+			Write-Host -ForegroundColor DarkGreen "[+] There are no kerberoastable privileged users"
 		}
 	Write-Host " "
 	
@@ -2419,25 +2424,18 @@ Invoke-ADCheckUserAttributes -Domain 'contoso.com' -Server 'dc1.contoso.com' -Us
 	Write-Host " "
 	
 	# Check for Domain admins with old password
-	Write-Host "---Checking if administrator accounts - that aren't disabled - have a password older then 365 days---"
+	Write-Host "---Checking if administrator accounts (privileged users) - that aren't disabled - have a password older then 365 days---"
 	$file = "$findings_path\oldpassword_administrators.txt"
-	$data = Get-DomainGroupMember -Domain $Domain -Server $Server -Credential $Creds "Domain Admins" -Recurse | Get-DomainUser -Domain $Domain -Server $Server -Credential $Creds | Where-Object {$_.pwdlastset -lt (Get-Date).AddDays(-365) -and $_.useraccountcontrol -notmatch "ACCOUNTDISABLE"} | Select-Object samaccountname, pwdlastset | Format-Table -Autosize | Out-File $file
-	$data += Get-DomainGroupMember -Domain $Domain -Server $Server -Credential $Creds "Enterprise Admins" -Recurse | Get-DomainUser -Domain $Domain -Server $Server -Credential $Creds | Where-Object {$_.pwdlastset -lt (Get-Date).AddDays(-365) -and $_.useraccountcontrol -notmatch "ACCOUNTDISABLE"} | Select-Object samaccountname, pwdlastset | Format-Table -Autosize | Out-File -Append $file
-	$data += Get-DomainGroupMember -Domain $Domain -Server $Server -Credential $Creds "Administrators" -Recurse | Get-DomainUser -Domain $Domain -Server $Server -Credential $Creds | Where-Object {$_.pwdlastset -lt (Get-Date).AddDays(-365) -and $_.useraccountcontrol -notmatch "ACCOUNTDISABLE"} | Select-Object samaccountname, pwdlastset | Format-Table -Autosize | Out-File -Append $file
+	$data = Get-DomainGroup -AdminCount -Domain $Domain -Server $Server -Credential $Creds | Get-DomainGroupMember -Domain $Domain -Server $Server -Credential $Creds -Recurse -ErrorAction silentlycontinue | Get-DomainUser -Domain $Domain -Server $Server -Credential $Creds | Where-Object {$_.pwdlastset -lt (Get-Date).AddDays(-365) -and $_.useraccountcontrol -notmatch "ACCOUNTDISABLE"} | Select-Object samaccountname, pwdlastset | Sort-object samaccountname -Unique 
 	
 	if ($data){ 
-			$data | Out-File $file
-			$data = Get-Content $file
-			$data = $data | Sort-Object -Unique 
-			$data = $data -replace 'samaccountname', '' -replace '--------------', '' #remove strings
-			$data = $data.Trim() | ? {$_.trim() -ne "" } #Remove spaces and white lines
 			$count = $data | Measure-Object | Select-Object -expand Count
-			Write-Host -ForegroundColor Red "[-] There are $count enabled administrators with a password older then 365 days!"
+			Write-Host -ForegroundColor Red "[-] There are $count enabled privileged users with a password older then 365 days!"
 			Write-Host "[W] Writing to $file"
 			$data | Out-File $file
 		}
 		else {
-			Write-Host -ForegroundColor DarkGreen "[+] There where no enabled administrators with a password older then 365 days"
+			Write-Host -ForegroundColor DarkGreen "[+] There where no enabled privileged users with a password older then 365 days"
 		}
 	Write-Host " "
 	
