@@ -2425,7 +2425,7 @@ Invoke-ADCheckUserAttributes -Domain 'contoso.com' -Server 'dc1.contoso.com' -Us
 	
 	# Check for Domain admins with old password
 	Write-Host "---Checking if administrator accounts (privileged users) - that aren't disabled - have a password older then 365 days---"
-	$file = "$findings_path\oldpassword_administrators.txt"
+	$file = "$findings_path\oldpassword_privilegedusers.txt"
 	$data = Get-DomainGroup -AdminCount -Domain $Domain -Server $Server -Credential $Creds | Get-DomainGroupMember -Domain $Domain -Server $Server -Credential $Creds -Recurse -ErrorAction silentlycontinue | Get-DomainUser -Domain $Domain -Server $Server -Credential $Creds | Where-Object {$_.pwdlastset -lt (Get-Date).AddDays(-365) -and $_.useraccountcontrol -notmatch "ACCOUNTDISABLE"} | Select-Object samaccountname, pwdlastset | Sort-object samaccountname -Unique 
 	
 	if ($data){ 
