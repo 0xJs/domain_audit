@@ -10,7 +10,7 @@ $script:BloodHound_Path = "$PSScriptRoot\import\Sharphound.ps1"
 $script:Impacket_Path = "$PSScriptRoot\import\impacket"
 $script:GpRegisteryPolicy_Path = "$PSScriptRoot\import\GPRegistryPolicy\GPRegistryPolicy.psd1"
 $script:CME_Path = "$PSScriptRoot\import\cme"
-$script:LdapRelayScan_Path = "$PSScriptRoot\import\LdapRelayScan\LdapRelayScan.py"
+$script:LdapRelayScan_Path = "$PSScriptRoot\import\LdapRelay19043Scan\LdapRelayScan.py"
 
 # Variables
 $script:CredentialStatus = ''
@@ -2538,7 +2538,7 @@ Invoke-ADCheckOutdatedComputers -Domain 'contoso.com' -Server 'dc1.contoso.com' 
 	
 	# Checking for EOL operating systems in the AD
 	Write-Host "---Checking if there are end of service Windows 10 operating systems in the AD---"
-	$data = Get-DomainComputer  -Credential $Creds -Server $Server -Domain $Domain | Where-Object {$_.operatingsystem -match 'Windows 10'} | Where-Object {$_.operatingsystemversion -match 19041 -or $_.operatingsystemversion -match 18362 -or $_.operatingsystemversion -match 17134 -or $_.operatingsystemversion -match 16299 -or $_.operatingsystemversion -match 15063 -or $_.operatingsystemversion -match 10586 -or $_.operatingsystemversion -match 14393 -or $_.operatingsystemversion -match 10240} | Select-Object samaccountname, operatingsystem, operatingsystemversion, lastlogon | Sort-Object -Property lastlogon -Descending 
+	$data = Get-DomainComputer -Credential $Creds -Server $Server -Domain $Domain | Where-Object {$_.operatingsystem -match 'Windows 10'} | Where-Object {$_.operatingsystemversion -match 19041 -or $_.operatingsystemversion -match 18362 -or $_.operatingsystemversion -match 17134 -or $_.operatingsystemversion -match 16299 -or $_.operatingsystemversion -match 15063 -or $_.operatingsystemversion -match 10586 -or $_.operatingsystemversion -match 14393 -or $_.operatingsystemversion -match 10240} | Select-Object samaccountname, operatingsystem, operatingsystemversion, lastlogon | Sort-Object -Property lastlogon -Descending 
 	$file = "$findings_path\computers_W10_EOS.txt"
 	if ($data){ 
 			$count = $data | Measure-Object | Select-Object -expand Count
@@ -2548,7 +2548,8 @@ Invoke-ADCheckOutdatedComputers -Domain 'contoso.com' -Server 'dc1.contoso.com' 
 			Write-Host "[+] Replacing Powerview versions with more readable versions"
 			Write-Host "End of servic versions at https://docs.microsoft.com/en-us/windows/release-health/release-information"
 			(Get-Content $file) | Foreach-Object {
-			$_ 	-replace '19041', '2004' `
+			$_ 	-replace '19043', '21H1' `
+				-replace '19041', '2004' `
 				-replace '18362', '1903' `
 				-replace '17134', '1803' `
 				-replace '16299', '1709' `
