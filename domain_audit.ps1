@@ -2538,7 +2538,7 @@ Invoke-ADCheckOutdatedComputers -Domain 'contoso.com' -Server 'dc1.contoso.com' 
 	
 	# Checking for EOL operating systems in the AD
 	Write-Host "---Checking if there are end of service Windows 10 operating systems in the AD---"
-	$data = Get-DomainComputer -Credential $Creds -Server $Server -Domain $Domain | Where-Object {$_.operatingsystem -match 'Windows 10'} | Where-Object {$_.operatingsystemversion -match 19041 -or $_.operatingsystemversion -match 18362 -or $_.operatingsystemversion -match 17134 -or $_.operatingsystemversion -match 16299 -or $_.operatingsystemversion -match 15063 -or $_.operatingsystemversion -match 10586 -or $_.operatingsystemversion -match 14393 -or $_.operatingsystemversion -match 10240} | Select-Object samaccountname, operatingsystem, operatingsystemversion, lastlogon | Sort-Object -Property lastlogon -Descending 
+	$data = Get-DomainComputer -Credential $Creds -Server $Server -Domain $Domain | Where-Object {$_.operatingsystem -match 'Windows 10'} | Where-Object {$_.operatingsystemversion -match 19043 -or $_.operatingsystemversion -match 19041 -or $_.operatingsystemversion -match 18362 -or $_.operatingsystemversion -match 17134 -or $_.operatingsystemversion -match 16299 -or $_.operatingsystemversion -match 15063 -or $_.operatingsystemversion -match 10586 -or $_.operatingsystemversion -match 14393 -or $_.operatingsystemversion -match 10240} | Select-Object samaccountname, operatingsystem, operatingsystemversion, lastlogon | Sort-Object -Property lastlogon -Descending 
 	$file = "$findings_path\computers_W10_EOS.txt"
 	if ($data){ 
 			$count = $data | Measure-Object | Select-Object -expand Count
