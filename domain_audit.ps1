@@ -2564,7 +2564,7 @@ Invoke-ADCheckOutdatedComputers -Domain 'contoso.com' -Server 'dc1.contoso.com' 
 				-replace '17134', '1803' `
 				-replace '16299', '1709' `
 				-replace '15063', '1703' `
-				-replace '10586', '1511' 1
+				-replace '10586', '1511'
 			} | Set-Content $file
 		}
 		else {
