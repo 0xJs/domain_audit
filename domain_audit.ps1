@@ -2964,48 +2964,65 @@ Invoke-ADCheckDomainJoin -Domain 'contoso.com' -Server 'dc1.contoso.com' -User '
 
 	# Check who can add computerobjects to the domain
 	Write-Host "---Checking who can add computerobjects to the domain---"
-	$data = (Get-DomainPolicy -Policy DC -Domain $Domain -Server $Server -Credential $Creds).PrivilegeRights.SeMachineAccountPrivilege.Trim("*") | Get-DomainObject -Domain $Domain -Server $Server -Credential $Creds | Select-Object name
-	$file = "$findings_path\authenticated_users_can_join_domain.txt"
-	if ($data.name -eq "S-1-5-11"){ 
-			$DomainSid = Get-DomainSID -Domain $Domain -Server $Server -Credential $Creds
-			$MachineAccountQouta = Get-DomainObject -Domain $Domain -Server $Server -Credential $Creds | Where-Object objectsid -Like $DomainSid | Select-Object ms-ds-machineaccountquota
+	#$data = (Get-DomainPolicy -Policy DC -Domain $Domain -Server $Server -Credential $Creds).PrivilegeRights.SeMachineAccountPrivilege.Trim("*") | Get-DomainObject -Domain $Domain -Server $Server -Credential $Creds | Select-Object name
+	
+	$data = Get-DomainPolicy -Policy DC -Domain $Domain -Server $Server -Credential $Creds
+	
+	if ($data) {
+		$data = $data.PrivilegeRights.SeMachineAccountPrivilege.Trim("*") | Get-DomainObject -Domain $Domain -Server $Server -Credential $Creds | Select-Object name
+		
+		$file = "$findings_path\authenticated_users_can_join_domain.txt"
+		if ($data.name -eq "S-1-5-11"){ 
+				$DomainSid = Get-DomainSID -Domain $Domain -Server $Server -Credential $Creds
+				$MachineAccountQouta = Get-DomainObject -Domain $Domain -Server $Server -Credential $Creds | Where-Object objectsid -Like $DomainSid | Select-Object ms-ds-machineaccountquota
+				
+				if ($MachineAccountQouta."ms-ds-machineaccountquota" -eq 0) {
+					Write-Host -ForegroundColor DarkGreen "[+] The authenticated users group(S-1-5-11) can not add computerobjects to the domain"
+				}
+				elseif ($MachineAccountQouta."ms-ds-machineaccountquota" -ge 1) {
+					$count = $MachineAccountQouta."ms-ds-machineaccountquota"
+					Write-Host -ForegroundColor Red "[-] The authenticated users group(S-1-5-11) can add $count computerobjects to the domain"
+					Write-Host "[W] Writing to $file"
+					$data | Out-File $file
+					$file = "$checks_path\can_join_domain_amount.txt"
+					Write-Host "[W] Writing amount of computerobjects that can be joined to the domain by the object to $file"
+					$data2 | Out-File $file
+				}
+				elseif ($MachineAccountQouta."ms-ds-machineaccountquota" -Match $null) {
+					Write-Host -ForegroundColor Red "[-] The authenticated users group(S-1-5-11) can add unlimited computerobjects to the domain"
+					Write-Host "[W] Writing to $file"
+					$data | Out-File $file
+					$file = "$checks_path\can_join_domain_amount.txt"
+				}	
+				else {
+					$count = 0
+					Write-Host -ForeGroundColor Yellow "[-] Failed to get ms-ds-machineaccountquota please manually check"
+				}
+		}
+		else {
+			$file = "$checks_path\can_join_domain.txt"
+			Write-Host -ForegroundColor DarkGreen "[+] The authenticated users group can't add computerobjects to the domain"
+			Write-Host -ForegroundColor Yellow "[-] Please manually check which users or groups can add computerobjects to the domain"
+			Write-Host "[W] Writing to $file"
+			$data | Out-File $file
 			
-			if ($MachineAccountQouta."ms-ds-machineaccountquota" -eq 0) {
-				Write-Host -ForegroundColor DarkGreen "[+] The authenticated users group(S-1-5-11) can not add computerobjects to the domain"
-			}
-			elseif ($MachineAccountQouta."ms-ds-machineaccountquota" -ge 1) {
-				$count = $MachineAccountQouta."ms-ds-machineaccountquota"
-				Write-Host -ForegroundColor Red "[-] The authenticated users group(S-1-5-11) can add $count computerobjects to the domain"
-				Write-Host "[W] Writing to $file"
-				$data | Out-File $file
-				$file = "$checks_path\can_join_domain_amount.txt"
-				Write-Host "[W] Writing amount of computerobjects that can be joined to the domain by the object to $file"
-				$data2 | Out-File $file
-			}
-			elseif ($MachineAccountQouta."ms-ds-machineaccountquota" -Match $null) {
-				Write-Host -ForegroundColor Red "[-] The authenticated users group(S-1-5-11) can add unlimited computerobjects to the domain"
-				Write-Host "[W] Writing to $file"
-				$data | Out-File $file
-				$file = "$checks_path\can_join_domain_amount.txt"
-			}	
-			else {
-				$count = 0
-				Write-Host -ForeGroundColor Yellow "[-] Failed to get ms-ds-machineaccountquota please manually check"
-			}
+			$data = Get-DomainObject -Credential $creds -Domain $Domain -Server $Server | Where-Object ms-ds-machineaccountquota | select-object ms-ds-machineaccountquota
+			$count = $data2."ms-ds-machineaccountquota"
+			$file = "$checks_path\can_join_domain_amount.txt"
+			Write-Host "[W] Writing amount of computerobjects that can be joined to the domain by the object to $file"
+			$data | Out-File $file
+		}
+		Write-Host " "
 	}
 	else {
-		$file = "$checks_path\can_join_domain.txt"
-		Write-Host -ForegroundColor DarkGreen "[+] The authenticated users group can't add computerobjects to the domain"
-		Write-Host -ForegroundColor Yellow "[-] Please manually check which users or groups can add computerobjects to the domain"
-		Write-Host "[W] Writing to $file"
-		$data | Out-File $file
+		Write-Host -ForegroundColor Red "[-] Could not retrieve DC policy, retrieving ms-ds-machineaccountquota"
+		
 		$data = Get-DomainObject -Credential $creds -Domain $Domain -Server $Server | Where-Object ms-ds-machineaccountquota | select-object ms-ds-machineaccountquota
 		$count = $data2."ms-ds-machineaccountquota"
 		$file = "$checks_path\can_join_domain_amount.txt"
 		Write-Host "[W] Writing amount of computerobjects that can be joined to the domain by the object to $file"
 		$data | Out-File $file
 	}
-	Write-Host " "
 }
 
 Function Invoke-ADCheckReachableComputers {
@@ -3167,12 +3184,13 @@ Invoke-ADCheckSysvolPassword -Domain 'contoso.com' -Server 'dc1.contoso.com' -Us
 	Write-Host "---Checking if there are passwords in the SYSVOL share---"
 	Write-Host "This might take a while"
 	$file = "$checks_path\sysvol_passwords.txt"
+	
+	$data = Get-DomainController -Domain $Domain -Server $Server -Credential $Creds
 	ForEach ($dc in $data){
 		$name = $dc.name
 		$hostname = $dc.dnshostname
 		Write-Host "[+] Checking SYSVOL of $name"
 		New-PSDrive -Name $name -PSProvider FileSystem -Root \\$hostname\SYSVOL -Credential $Creds | out-null 
-	$data = Get-DomainController -Domain $Domain -Server $Server -Credential $Creds
 		
 		$data = Get-ChildItem -Recurse -Path \\$hostname\SYSVOL\$Domain\Policies\*.xml -ErrorAction silentlycontinue | Select-String -Pattern "password"
 		if ($data){ 
@@ -4015,42 +4033,57 @@ Invoke-ADCheckADIDNS -Domain 'contoso.com' -Server 'dc1.contoso.com' -User '0xjs
 	Write-Host "---Checking ADIDNS permissions---"
 	$data = Get-ADIDNSPermission -Credential $Creds -Domain $Domain -DomainController $Server -Zone $Domain
 	
-	#Saving ADIDNS Permission data
-	$file = "$data_path\ADIDNS_permissions.txt"
-	Write-Host "[W] Writing all data to $file"
-	$data | Out-File -Encoding utf8 $file	
-	Write-Host " "
-	
-	$data2 = $data | Where-Object -Property IdentityReference -EQ S-1-5-11 | Where-Object -Property ActiveDirectoryRights -EQ CreateChild
-	$file = "$findings_path\ADIDNS_authenticated_users.txt"
-	if ($data2){ 
-			Write-Host -ForegroundColor Red "[-] The authenticated users group(S-1-5-11) can add DNS Records"
-			Write-Host "[W] Writing to $file"
-			$data2 | Out-File $file
-			$bool_ADIDNS_pois = $true
+	if ($data -Match "You cannot call a method on a null-valued expression.") {
+		Write-Host "[-] DomainDNSZones failed, trying ForestDNSZones"
+		$data = Get-ADIDNSPermission -Credential $Creds -Domain $Domain -DomainController $Server -Zone $Domain -Partition ForestDNSZones
+		
+		if ($data -Match "You cannot call a method on a null-valued expression.") {
+			Write-Host "[-] ForestDNSZones failed, trying Partition"
+			$data = Get-ADIDNSPermission -Credential $Creds -Domain $Domain -DomainController $Server -Zone $Domain -Partition System
 		}
-		else {
-			Write-Host -ForegroundColor DarkGreen "[+] The authenticated users group(S-1-5-11) can not add DNS Records"
-			Write-Host -ForegroundColor Yellow "[+] Manually check the ADIDNS Permissions in $data_path\ADIDNS_permissions.txt"
-		}
-	Write-Host " "
+	}
 	
-	Write-Host "---Checking ADIDNS wildcard record---"
-	$data = Get-ADIDNSNodeAttribute -Node '*' -Attribute DNSRecord -Credential $Creds -Domain $Domain -DomainController $Server -Zone $Domain
-	$file = "$findings_path\ADIDNS_wildcard_record.txt"
-	if ($data -Match "There is no such object on the server"){ 
-			$bool_ADIDNS_wildcard = $false
-			Write-Host -ForegroundColor Red "[-] No wildcard record in ADIDNS"
-			
-			if ($bool_ADIDNS_pois -eq $true -and $bool_ADIDNS_wildcard -eq $false){
-				Write-Host -ForegroundColor Red "[-] ADIDNS poisoning with wildcard possible"
+	if ($data -NotMatch "You cannot call a method on a null-valued expression."){
+		#Saving ADIDNS Permission data
+		$file = "$data_path\ADIDNS_permissions.txt"
+		Write-Host "[W] Writing all data to $file"
+		$data | Out-File -Encoding utf8 $file	
+		Write-Host " "
+		
+		$data2 = $data | Where-Object -Property IdentityReference -EQ S-1-5-11 | Where-Object -Property ActiveDirectoryRights -EQ CreateChild
+		$file = "$findings_path\ADIDNS_authenticated_users.txt"
+		if ($data2){ 
+				Write-Host -ForegroundColor Red "[-] The authenticated users group(S-1-5-11) can add DNS Records"
+				Write-Host "[W] Writing to $file"
+				$data2 | Out-File $file
+				$bool_ADIDNS_pois = $true
 			}
-			
-			Write-Host "[W] Writing to $file"
-			$data | Out-File $file
-		}
-		else {
-			Write-Host -ForegroundColor DarkGreen "[+] Wildcard record in ADIDNS exists"
-		}
-	Write-Host " "
+			else {
+				Write-Host -ForegroundColor DarkGreen "[+] The authenticated users group(S-1-5-11) can not add DNS Records"
+				Write-Host -ForegroundColor Yellow "[+] Manually check the ADIDNS Permissions in $data_path\ADIDNS_permissions.txt"
+			}
+		Write-Host " "
+		
+		Write-Host "---Checking ADIDNS wildcard record---"
+		$data = Get-ADIDNSNodeAttribute -Node '*' -Attribute DNSRecord -Credential $Creds -Domain $Domain -DomainController $Server -Zone $Domain
+		$file = "$findings_path\ADIDNS_wildcard_record.txt"
+		if ($data -Match "There is no such object on the server"){ 
+				$bool_ADIDNS_wildcard = $false
+				Write-Host -ForegroundColor Red "[-] No wildcard record in ADIDNS"
+				
+				if ($bool_ADIDNS_pois -eq $true -and $bool_ADIDNS_wildcard -eq $false){
+					Write-Host -ForegroundColor Red "[-] ADIDNS poisoning with wildcard possible"
+				}
+				
+				Write-Host "[W] Writing to $file"
+				$data | Out-File $file
+			}
+			else {
+				Write-Host -ForegroundColor DarkGreen "[+] Wildcard record in ADIDNS exists"
+			}
+		Write-Host " "
+	}
+	else {
+		Write-Host -ForegroundColor Red "[-] Could not retrieve ADIDNS permissions"
+	}
 }
