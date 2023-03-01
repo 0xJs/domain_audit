@@ -10,7 +10,7 @@ $script:BloodHound_Path = "$PSScriptRoot\import\Sharphound.ps1"
 $script:Impacket_Path = "$PSScriptRoot\import\impacket"
 $script:GpRegisteryPolicy_Path = "$PSScriptRoot\import\GPRegistryPolicy\GPRegistryPolicy.psd1"
 $script:CME_Path = "$PSScriptRoot\import\cme"
-$script:LdapRelayScan_Path = "$PSScriptRoot\import\LdapRelay19043Scan\LdapRelayScan.py"
+$script:LdapRelayScan_Path = "$PSScriptRoot\import\LdapRelayScan\LdapRelayScan.py"
 
 # Variables
 $script:CredentialStatus = ''
