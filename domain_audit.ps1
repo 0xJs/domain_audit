@@ -4178,4 +4178,5 @@ Invoke-ADCheckPre-Windows2000Computers -Domain 'contoso.com' -Server 'dc1.contos
 	Write-Host "[W] Writing list of passwords to $file"
 	
 	Write-Host -ForeGroundColor Yellow "[+] Please manually spray for Pre-Windows 2000 Computers"
+	Write-Host "Check for the error message STATUS_NOLOGON_WORKSTATION_TRUST_ACCOUNT"
 }
