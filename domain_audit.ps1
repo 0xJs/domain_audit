@@ -233,6 +233,8 @@ Start ADChecks with all modules
 		
 		Invoke-ADCheckPreWindows2000Group -Domain $Domain -Server $Server -User $User -Password $Password
 		
+		Invoke-ADCheckPre-Windows2000Computers -Domain $Domain -Server $Server -User $User -Password $Password
+		
 		Invoke-ADCheckPrintspoolerDC -Domain $Domain -Server $Server -User $User -Password $Password
 		
 		Invoke-ADCheckLDAP -Domain $Domain -Server $Server -User $User -Password $Password
@@ -252,7 +254,6 @@ Start ADChecks with all modules
 		Write-Host -ForegroundColor Red "[-] Exiting, please provide a valid set op credentials"
 	}
 }
-
 
 Function Create-CredentialObject {
 <#
@@ -4086,4 +4087,95 @@ Invoke-ADCheckADIDNS -Domain 'contoso.com' -Server 'dc1.contoso.com' -User '0xjs
 	else {
 		Write-Host -ForegroundColor Red "[-] Could not retrieve ADIDNS permissions"
 	}
+}
+
+Function Invoke-ADCheckPre-Windows2000Computers {
+<#
+.SYNOPSIS
+Author: Jony Schats - 0xjs
+Required Dependencies: Invoke-ADCheckLegacyComputers
+Optional Dependencies: None
+
+.DESCRIPTION
+Creates lists for checking if the computers are created with the Pre-Windows2000 Computers setting and have a weak password.
+
+.PARAMETER Domain
+Specifies the domain to use for the query and creating outputdirectory.
+
+.PARAMETER Server
+Specifies an Active Directory server IP to bind to, e.g. 10.0.0.1
+
+.PARAMETER User
+Specifies the username to use for the query.
+
+.PARAMETER Password
+Specifies the Password in combination with the username to use for the query.
+
+.PARAMETER OutputDirectory
+Specifies the path to use for the output directory, defaults to the current directory.
+
+.EXAMPLE
+Invoke-ADCheckPre-Windows2000Computers -Domain 'contoso.com' -Server 'dc1.contoso.com' -User '0xjs' -Password 'Password01!'
+#>
+
+	#Parameters
+	[CmdletBinding()]
+	Param(
+		[Parameter(Mandatory=$true,HelpMessage="Enter a domain name here, e.g. contoso.com")]
+		[ValidateNotNullOrEmpty()]
+		[string]$Domain,
+		
+		[Parameter(Mandatory=$true,HelpMessage="Enter a IP of a domain controller here, e.g. 10.0.0.1")]
+		[ValidateNotNullOrEmpty()]
+		[string]$Server,
+		
+		[Parameter(Mandatory=$true,HelpMessage="Enter the username to connect with")]
+		[ValidateNotNullOrEmpty()]
+		[string]$User,
+		
+		[Parameter(Mandatory=$true,HelpMessage="Enter the password of the user")]
+		[ValidateNotNullOrEmpty()]
+		[string]$Password,
+		
+		[Parameter(Mandatory=$false)]
+		[ValidateNotNullOrEmpty()]
+		[string]$OutputDirectory
+	)
+
+	if ($User -ne $Creds.Username) {
+		Create-CredentialObject -User $User -Password $Password -Domain $Domain
+	}	
+
+	if ($OutputDirectoryCreated -ne $true) {
+		if ($PSBoundParameters['OutputDirectory']) {
+			New-OutputDirectory -Domain $Domain -OutputDirectory $OutputDirectory
+			}
+			else {
+				New-OutputDirectory -Domain $Domain
+		}
+	}
+	
+	Write-Host "---Checking Pre-Windows 2000 computers--"
+	$data = Get-DomainComputer -Credential $Creds -Domain $Domain -DomainController $Server | Select-Object -ExpandProperty samaccountname
+	$data = $data -replace 'samaccountname', '' -replace '-', ''
+	
+	$file = "$checks_path\list_computers.txt"
+	$data | Out-File $file
+	Write-Host "[W] Writing list of computers to $file"
+	
+	$data = $data -replace '\$', ''
+	
+	$file = "$checks_path\list_computers_Pre-Windows2000Computers_pass.txt"
+	ForEach ($line in $data) {
+		if ($line.Length -gt 14) {
+				$line.SubString(0,14) | Out-File -Append $File
+		}
+		else {
+				$line | Out-File -Append $File
+		}
+	}
+	
+	Write-Host "[W] Writing list of passwords to $file"
+	
+	Write-Host -ForeGroundColor Yellow "[+] Please manually spray for Pre-Windows 2000 Computers"
 }
