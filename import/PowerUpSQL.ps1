@@ -1164,7 +1164,7 @@ Function Invoke-SQLUncPathInjection {
             # https://support.microsoft.com/en-us/help/321185/how-to-determine-the-version--edition-and-update-level-of-sql-server-a
 
             # Check version
-            $SQLVersionFull = Get-SQLServerInfo -Instance $CurrentInstance -Username $Username -Password $Password -SuppressVerbose | Select-Object -Property SQLServerVersionNumber -ExpandProperty SQLServerVersionNumber
+            $SQLVersionFull = Get-SQLServerInfo -Instance $CurrentInstance -Username $Username -Password $Password -Timeout 30 -SuppressVerbose | Select-Object -Property SQLServerVersionNumber -ExpandProperty SQLServerVersionNumber
             if($SQLVersionFull)
             {
                 $SQLVersionShort = $SQLVersionFull.Split('.')[0]
