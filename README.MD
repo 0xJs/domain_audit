@@ -151,6 +151,7 @@ Invoke-ADCheckAll will execute the following in order:
 - Check if the webservice client is running on accessible machines
 
 ## TO-DO & Features
+- Remove -Replace 'samaccountname' and '-' with $data.samaccountname etc. Example: (Get-DomainComputer -Domain $Domain -Server $Server -Credential $Creds -ErrorAction silentlycontinue | Where-Object dnshostname | Select-Object dnshostname | Sort-Object).dnshostname
 - Create query for EOS Server versions?
 - Update queries/checks for domain admin/enterprise admins to all privileged groups.
 - Update queries to filter disabled users from data.
