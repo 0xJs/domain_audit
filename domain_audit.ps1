@@ -241,6 +241,8 @@ Start ADChecks with all modules
 		
 		Invoke-ADCheckExchange -Domain $Domain -Server $Server -User $User -Password $Password
 		
+		Invoke-ADGetIPInfo -Domain $Domain -Server $Server -User $User -Password $Password
+		
 		Invoke-ADCheckSysvolPassword -Domain $Domain -Server $Server -User $User -Password $Password
 		
 		Invoke-ADCheckNetlogonPassword -Domain $Domain -Server $Server -User $User -Password $Password
@@ -3024,6 +3026,93 @@ Invoke-ADCheckDomainJoin -Domain 'contoso.com' -Server 'dc1.contoso.com' -User '
 		Write-Host "[W] Writing amount of computerobjects that can be joined to the domain by the object to $file"
 		$data | Out-File $file
 	}
+}
+
+Function Invoke-ADGetIPInfo {
+<#
+.SYNOPSIS
+Author: Jony Schats - 0xjs
+Required Dependencies: Invoke-ChangeDNS
+Optional Dependencies: None
+
+.DESCRIPTION
+Retrieves all domain computers and checks their IP with nslookup. It then creates /24 ranges of each network found which can be used for scanning the network. Requires the correct DNS server of the domain to be set, with for example Invoke-ChangeDNS.
+
+.PARAMETER Domain
+Specifies the domain to use for the query and creating outputdirectory.
+
+.PARAMETER Server
+Specifies an Active Directory server IP to bind to, e.g. 10.0.0.1
+
+.PARAMETER User
+Specifies the username to use for the query.
+
+.PARAMETER Password
+Specifies the Password in combination with the username to use for the query.
+
+.PARAMETER OutputDirectory
+Specifies the path to use for the output directory, defaults to the current directory.
+
+.EXAMPLE
+Invoke-ADGetIPInfo -Domain 'contoso.com' -Server 'dc1.contoso.com' -User '0xjs' -Password 'Password01!'
+#>
+
+	#Parameters
+	[CmdletBinding()]
+	Param(
+		[Parameter(Mandatory=$true,HelpMessage="Enter a domain name here, e.g. contoso.com")]
+		[ValidateNotNullOrEmpty()]
+		[string]$Domain,
+		
+		[Parameter(Mandatory=$true,HelpMessage="Enter a IP of a domain controller here, e.g. 10.0.0.1")]
+		[ValidateNotNullOrEmpty()]
+		[string]$Server,
+		
+		[Parameter(Mandatory=$true,HelpMessage="Enter the username to connect with")]
+		[ValidateNotNullOrEmpty()]
+		[string]$User,
+		
+		[Parameter(Mandatory=$true,HelpMessage="Enter the password of the user")]
+		[ValidateNotNullOrEmpty()]
+		[string]$Password,
+		
+		[Parameter(Mandatory=$false)]
+		[ValidateNotNullOrEmpty()]
+		[string]$OutputDirectory
+	)
+
+	if ($OutputDirectoryCreated -ne $true) {
+		if ($PSBoundParameters['OutputDirectory']) {
+			New-OutputDirectory -Domain $Domain -OutputDirectory $OutputDirectory
+			}
+			else {
+				New-OutputDirectory -Domain $Domain
+		}
+	}
+	
+	if ($User -ne $Creds.Username) {
+		Create-CredentialObject -User $User -Password $Password -Domain $Domain
+	}
+
+	# Retrieving IP's for each machine
+	Write-Host "---Retrieving IP-adresses through DNS for each machine---"
+	$data = (Get-DomainComputer -Domain $Domain -Server $Server -Credential $Creds -ErrorAction silentlycontinue | Where-Object dnshostname | Select-Object dnshostname | Sort-Object).dnshostname
+	$data2 = $data | Resolve-DnsName -Server $Server -TcpOnly
+	
+	$file = "$data_path\computers_name_ip.txt"
+	Write-Host "[W] Writing dnshostname + ip to $file"
+	$data2 | Out-File -Encoding utf8 $file
+	
+	$file = "$data_path\computers_ips.txt"
+	Write-Host "[W] Writing all ips to $file"
+	($data2).IPAddress | Out-File -Encoding utf8 $file
+	Write-Host " "
+	
+	Write-Host "---Calculating /24 ranges from IP's---"
+    $data3 = ($data2).IPAddress -split "\d{1,3}$" | Sort-Object -Unique | ? {$_ -ne ""} | foreach {$_ +  "0/24"}
+	$file = "$data_path\computers_ipranges.txt"
+	Write-Host "[W] Writing all possible /24 ranges to $file"
+	$data3 | Out-File -Encoding utf8 $file
 }
 
 Function Invoke-ADCheckReachableComputers {
