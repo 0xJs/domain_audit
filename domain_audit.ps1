@@ -199,6 +199,8 @@ Start ADChecks with all modules
 		
 		Invoke-ADCheckPasspol -Domain $Domain -Server $Server -User $User -Password $Password
 		
+		Invoke-ADCheckFineGrainedPasswordPolicy -Domain $Domain -Server $Server -User $User -Password $Password
+		
 		Invoke-ADCheckPasspolKerberos -Domain $Domain -Server $Server -User $User -Password $Password
 		
 		Invoke-ADCheckLAPS -Domain $Domain -Server $Server -User $User -Password $Password
@@ -697,7 +699,7 @@ Execute all basic enumeration steps but skip BloudHound
 	$data | Out-File $file
 	$data = Get-Content $file
 	$data = $data | Sort-Object -Unique 
-	$data = $data -replace 'samaccountname', '' -replace '-', '' -replace 'serviceprincipalname', '' #remove strings
+	$data = $data -replace 'samaccountname', '' -replace '--', '' -replace 'serviceprincipalname', '' #remove strings
 	$data = $data.Trim() | ? {$_.trim() -ne "" } #Remove spaces and white lines
 	$data = $data | Sort-Object -Unique
 	$data | Out-File $file
@@ -706,12 +708,7 @@ Execute all basic enumeration steps but skip BloudHound
 	Write-Host "[W] Saving a list of all privileged users to $file"
 	$data = Get-DomainGroup -AdminCount -Domain $Domain -Server $Server -Credential $Creds | Get-DomainGroupMember -Domain $Domain -Server $Server -Credential $Creds -Recurse -ErrorAction silentlycontinue | Get-DomainUser -Domain $Domain -Server $Server -Credential $Creds | Select-Object samaccountname | Sort-object samaccountname -Unique 
 	$privusercount = $data | Measure-object | Select-Object -expand Count
-	$data = $data | Out-File $file
-	$data = Get-Content $file 
-	$data = $data -replace 'samaccountname', '' -replace '--------------', '' #remove strings
-	$data = $data.Trim() | ? {$_.trim() -ne "" } #Remove spaces and white lines
-	$data = $data | Sort-Object -Unique
-	$data | Out-File $file
+	$data.samaccountname | Out-File $file
 	
 	Write-Host "[W] Saving a list of all groups to $Data_Path\list_groups.txt"
 	Import-Csv $Data_Path\data_groups.csv | Select-Object samaccountname | Sort-Object -Property samaccountname | Out-File $Data_Path\list_groups.txt
@@ -4167,10 +4164,10 @@ Invoke-ADCheckADIDNS -Domain 'contoso.com' -Server 'dc1.contoso.com' -User '0xjs
 				
 				Write-Host "[W] Writing to $file"
 				$data | Out-File $file
-			}
-			else {
-				Write-Host -ForegroundColor DarkGreen "[+] Wildcard record in ADIDNS exists"
-			}
+		}
+		else {
+			Write-Host -ForegroundColor DarkGreen "[+] Wildcard record in ADIDNS exists"
+		}
 		Write-Host " "
 	}
 	else {
@@ -4245,10 +4242,9 @@ Invoke-ADCheckPre-Windows2000Computers -Domain 'contoso.com' -Server 'dc1.contos
 	}
 	
 	Write-Host "---Checking Pre-Windows 2000 computers--"
-	$data = Get-DomainComputer -Credential $Creds -Domain $Domain -DomainController $Server | Select-Object -ExpandProperty samaccountname
-	$data = $data -replace 'samaccountname', '' -replace '-', ''
-	
+	$data = Get-DomainComputer -Credential $Creds -Domain $Domain -DomainController $Server 
 	$file = "$checks_path\list_computers.txt"
+	$data = $data.samaccountname
 	$data | Out-File $file
 	Write-Host "[W] Writing list of computers to $file"
 	
@@ -4268,4 +4264,94 @@ Invoke-ADCheckPre-Windows2000Computers -Domain 'contoso.com' -Server 'dc1.contos
 	
 	Write-Host -ForeGroundColor Yellow "[+] Please manually spray for Pre-Windows 2000 Computers"
 	Write-Host "Check for the error message STATUS_NOLOGON_WORKSTATION_TRUST_ACCOUNT"
+	
+	Write-Host " "
+}
+
+Function Invoke-ADCheckFineGrainedPasswordPolicy {
+<#
+.SYNOPSIS
+Author: Jony Schats - 0xjs
+Required Dependencies: Invoke-ADCheckFineGrainedPasswordPolicy
+Optional Dependencies: None
+
+.DESCRIPTION
+
+
+.PARAMETER Domain
+Specifies the domain to use for the query and creating outputdirectory.
+
+.PARAMETER Server
+Specifies an Active Directory server IP to bind to, e.g. 10.0.0.1
+
+.PARAMETER User
+Specifies the username to use for the query.
+
+.PARAMETER Password
+Specifies the Password in combination with the username to use for the query.
+
+.PARAMETER OutputDirectory
+Specifies the path to use for the output directory, defaults to the current directory.
+
+.EXAMPLE
+Invoke-ADCheckFineGrainedPasswordPolicy -Domain 'contoso.com' -Server 'dc1.contoso.com' -User '0xjs' -Password 'Password01!'
+#>
+
+	#Parameters
+	[CmdletBinding()]
+	Param(
+		[Parameter(Mandatory=$true,HelpMessage="Enter a domain name here, e.g. contoso.com")]
+		[ValidateNotNullOrEmpty()]
+		[string]$Domain,
+		
+		[Parameter(Mandatory=$true,HelpMessage="Enter a IP of a domain controller here, e.g. 10.0.0.1")]
+		[ValidateNotNullOrEmpty()]
+		[string]$Server,
+		
+		[Parameter(Mandatory=$true,HelpMessage="Enter the username to connect with")]
+		[ValidateNotNullOrEmpty()]
+		[string]$User,
+		
+		[Parameter(Mandatory=$true,HelpMessage="Enter the password of the user")]
+		[ValidateNotNullOrEmpty()]
+		[string]$Password,
+		
+		[Parameter(Mandatory=$false)]
+		[ValidateNotNullOrEmpty()]
+		[string]$OutputDirectory
+	)
+
+	if ($User -ne $Creds.Username) {
+		Create-CredentialObject -User $User -Password $Password -Domain $Domain
+	}	
+
+	if ($OutputDirectoryCreated -ne $true) {
+		if ($PSBoundParameters['OutputDirectory']) {
+			New-OutputDirectory -Domain $Domain -OutputDirectory $OutputDirectory
+			}
+			else {
+				New-OutputDirectory -Domain $Domain
+		}
+	}
+	
+	Write-Host "---Checking Fine-grained password policy--"
+	$data = Get-DomainUser -Server $Server -Domain $Domain -Credential $Creds -Properties * | Where-Object -Property msds-psoapplied
+	$file = "$data_path\users_finegrainedpasswordpolicy.txt"
+	if ($data){ 
+		$count = $data | Measure-Object | Select-Object -expand Count
+		Write-Host -ForegroundColor Red "[-] There are $count users that have a fine-grained password policy"
+		Write-Host "[W] Writing to $file"
+		$data | Select-Object samaccountname,msds-psoapplied | Out-File $file
+		
+		$data2 = Get-DomainUser -Server $Server -Domain $Domain -Credential $Creds -Properties * | Where-Object -Property msds-psoapplied -EQ $null | Select-Object samaccountname
+		$file = "$data_path\users_NOfinegrainedpasswordpolicy.txt"
+		Write-Host -ForegroundColor Red "[-] If you don't want to lockout users, spray with this list!"
+		Write-Host "[W] Writing list of usernames without a finegrained password policy to $file"
+		$data2.samaccountname | Out-File $file
+	}
+	else {
+		Write-Host -ForegroundColor DarkGreen "[+] There where no users with a fine-grained password policy"
+	}
+	
+	Write-Host " "
 }
