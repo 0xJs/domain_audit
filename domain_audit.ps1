@@ -3094,7 +3094,7 @@ Invoke-ADGetIPInfo -Domain 'contoso.com' -Server 'dc1.contoso.com' -User '0xjs' 
 	# Retrieving IP's for each machine
 	Write-Host "---Retrieving IP-adresses through DNS for each machine---"
 	$data = (Get-DomainComputer -Domain $Domain -Server $Server -Credential $Creds -ErrorAction silentlycontinue | Where-Object dnshostname | Select-Object dnshostname | Sort-Object).dnshostname
-	$data2 = $data | Resolve-DnsName -Server $Server -TcpOnly
+	$data2 = $data | Resolve-DnsName -Server $Server -TcpOnly -Erroraction silentlycontinue
 	
 	$file = "$data_path\computers_name_ip.txt"
 	Write-Host "[W] Writing dnshostname + ip to $file"
