@@ -142,16 +142,21 @@ Invoke-ADCheckAll will execute the following in order:
     - Check for memberships in the default Exchange groups
 - Check for passwords in the sysvol
 - Check for passwords in netlogon (scripts, programs etc)
-- Check for accessible machines
-- Checks for SMB on accessible machines
+- Retrieve IP adresses of all computer objects and create /24 ranges for further enumeration
+  - Scan the ranges for well known Windows ports + ssh and web. Create lists for each port
+  - Checks for SMB on accessible machines
     - Check SMBv1
     - Check signing requirement
     - Check for readable shares
     - Check for writable shares
-- Check if the webservice client is running on accessible machines
+    - Check if the webservice client is running on accessible machines
+  - Check Access
+    - Check if the current user is local admin through SMB
+    - Check if the current user can access over WINRM
+    - Check if the current user can access over RDP (WIP)
+    - Check if the current user can access over MSSQL and is sysadmin (WIP)
 
 ## TO-DO & Features
-- Remove -Replace 'samaccountname' and '-' with $data.samaccountname etc. Example: (Get-DomainComputer -Domain $Domain -Server $Server -Credential $Creds -ErrorAction silentlycontinue | Where-Object dnshostname | Select-Object dnshostname | Sort-Object).dnshostname
 - Create query for EOS Server versions?
 - Update queries/checks for domain admin/enterprise admins to all privileged groups.
 - Update queries to filter disabled users from data.
