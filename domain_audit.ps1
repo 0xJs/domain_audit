@@ -265,6 +265,8 @@ Start ADChecks with all modules
 		
 		Invoke-ADCheckWebclient -Domain $Domain -Server $Server -User $User -Password $Password
 		
+		Invoke-ADCheckAccess -Domain $Domain -Server $Server -User $User -Password $Password
+		
 	}
 	elseif ($CredentialStatus -eq $false) {
 		Write-Host -ForegroundColor Red "[-] Exiting, please provide a valid set op credentials"
@@ -3444,6 +3446,89 @@ Invoke-ADCheckExchange -Domain 'contoso.com' -Server 'dc1.contoso.com' -User '0x
 	Write-Host " "
 }
 
+Function Invoke-ADCheckCS {
+<#
+.SYNOPSIS
+Author: Jony Schats - 0xjs
+Required Dependencies: None 
+Optional Dependencies: None
+
+.DESCRIPTION
+Check if the Cert Publishers group is populated.
+
+.PARAMETER Domain
+Specifies the domain to use for the query and creating outputdirectory.
+
+.PARAMETER Server
+Specifies an Active Directory server IP to bind to, e.g. 10.0.0.1
+
+.PARAMETER User
+Specifies the username to use for the query.
+
+.PARAMETER Password
+Specifies the Password in combination with the username to use for the query.
+
+.PARAMETER OutputDirectory
+Specifies the path to use for the output directory, defaults to the current directory.
+
+.EXAMPLE
+Invoke-ADCheckCS -Domain 'contoso.com' -Server 'dc1.contoso.com' -User '0xjs' -Password 'Password01!'
+#>
+
+	#Parameters
+	[CmdletBinding()]
+	Param(
+		[Parameter(Mandatory=$true,HelpMessage="Enter a domain name here, e.g. contoso.com")]
+		[ValidateNotNullOrEmpty()]
+		[string]$Domain,
+		
+		[Parameter(Mandatory=$true,HelpMessage="Enter a IP of a domain controller here, e.g. 10.0.0.1")]
+		[ValidateNotNullOrEmpty()]
+		[string]$Server,
+		
+		[Parameter(Mandatory=$true,HelpMessage="Enter the username to connect with")]
+		[ValidateNotNullOrEmpty()]
+		[string]$User,
+		
+		[Parameter(Mandatory=$true,HelpMessage="Enter the password of the user")]
+		[ValidateNotNullOrEmpty()]
+		[string]$Password,
+		
+		[Parameter(Mandatory=$false)]
+		[ValidateNotNullOrEmpty()]
+		[string]$OutputDirectory
+	)
+
+	if ($User -ne $Creds.Username) {
+		Create-CredentialObject -User $User -Password $Password -Domain $Domain
+	}	
+
+	if ($OutputDirectoryCreated -ne $true) {
+		if ($PSBoundParameters['OutputDirectory']) {
+			New-OutputDirectory -Domain $Domain -OutputDirectory $OutputDirectory
+			}
+			else {
+				New-OutputDirectory -Domain $Domain
+		}
+	}
+	
+	Write-Host "---Checking if Active Directory Certificate Services is used within the domain---"
+	
+	$file = "$checks_path\ADCS.txt"
+	$data = Get-DomainGroup -Domain $Domain -Server $Server -Credential $Creds | Where-Object {$_.samaccountname -EQ "Cert Publishers"} | Select-Object samaccountname 
+	if ($data){
+		$count = $data | Measure-Object | Select-Object -expand Count
+		Write-Host -ForeGroundColor Yellow "[+] ADCS installed on $count machines"
+		Write-Host -ForeGroundColor Yellow "[+] Please manually check for ADCS vulns"
+		Write-Host "[W] Writing to $file"
+		$data | Out-File $file
+	}
+	else {
+		Write-Host -ForegroundColor DarkGreen "[+] ADCS not installed"
+	}
+	Write-Host " "
+}
+
 Function Invoke-ADCheckLDAP {
 <#
 .SYNOPSIS
@@ -4420,7 +4505,7 @@ Required Dependencies: Invoke-ADGetPortInfo
 Optional Dependencies: None
 
 .DESCRIPTION
-
+Check if the current user has access to machines over SMB, WINRM, RDP and MSSQL
 
 .PARAMETER Domain
 Specifies the domain to use for the query and creating outputdirectory.
@@ -4503,6 +4588,8 @@ Invoke-ADCheckSMB -Domain 'contoso.com' -Server 'dc1.contoso.com' -User '0xjs' -
 		Write-Host -ForegroundColor DarkGreen "[+] Skipping SMB no hosts"
 	}
 	
+	Write-Host " "
+	
 	$winrmhostsfile = "$data_path\scandata_hostalive_winrm.txt"
 	if (Test-Path -Path $winrmhostsfile) {
 		# Checking access WINRM
@@ -4530,6 +4617,8 @@ Invoke-ADCheckSMB -Domain 'contoso.com' -Server 'dc1.contoso.com' -User '0xjs' -
 	} else {
 		Write-Host -ForegroundColor DarkGreen "[+] Skipping WinRM no hosts"
 	}
+	
+	Write-Host " "
 	
 		
 	$rdphostsfile = "$data_path\scandata_hostalive_rdp.txt"
@@ -4559,6 +4648,8 @@ Invoke-ADCheckSMB -Domain 'contoso.com' -Server 'dc1.contoso.com' -User '0xjs' -
 	} else {
 		Write-Host -ForegroundColor DarkGreen "[+] Skipping RDP no hosts"
 	}
+	
+	Write-Host " "
 	
 		
 	#$mssqlhostsfile = "$data_path\scandata_hostalive_mssql.txt"
