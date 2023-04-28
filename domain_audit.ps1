@@ -7,6 +7,7 @@ $script:PowerView_Path = "$PSScriptRoot\import\PowerView.ps1"
 $script:Powerupsql_Path = "$PSScriptRoot\import\PowerUpSQL.ps1"
 $script:PowerMad_Path = "$PSScriptRoot\import\Powermad.ps1"
 $script:BloodHound_Path = "$PSScriptRoot\import\Sharphound.ps1"
+$script:Portscan_Path = "$PSScriptRoot\import\Invoke-Portscan.ps1"
 $script:Impacket_Path = "$PSScriptRoot\import\impacket"
 $script:GpRegisteryPolicy_Path = "$PSScriptRoot\import\GPRegistryPolicy\GPRegistryPolicy.psd1"
 $script:CME_Path = "$PSScriptRoot\import\cme"
@@ -50,12 +51,21 @@ else {
 }
 
 if (-not(Test-Path -Path $PowerMad_Path)) {
-	Write-Host -ForegroundColor Red "$PowerMad_Path_Path doesn't exist. Please check the file and path variables in the script."
+	Write-Host -ForegroundColor Red "$PowerMad_Path doesn't exist. Please check the file and path variables in the script."
 	Write-Host -ForegroundColor Red "Won't be able to check ADIDNS"
 	Write-Host " "
 }
 else {
 	Import-Module -Force -Name $PowerMad_Path -WarningAction silentlycontinue
+}
+
+if (-not(Test-Path -Path $Portscan_Path)) {
+	Write-Host -ForegroundColor Red "$Portscan_Path doesn't exist. Please check the file and path variables in the script."
+	Write-Host -ForegroundColor Red "Won't be able to scan for open ports and enumerate further"
+	Write-Host " "
+}
+else {
+	Import-Module -Force -Name $Portscan_Path -WarningAction silentlycontinue
 }
 
 if (-not(Test-Path -Path $Impacket_Path\examples\GetUserSPNs.py)) {
@@ -243,12 +253,14 @@ Start ADChecks with all modules
 		
 		Invoke-ADCheckExchange -Domain $Domain -Server $Server -User $User -Password $Password
 		
-		Invoke-ADGetIPInfo -Domain $Domain -Server $Server -User $User -Password $Password
-		
 		Invoke-ADCheckSysvolPassword -Domain $Domain -Server $Server -User $User -Password $Password
 		
 		Invoke-ADCheckNetlogonPassword -Domain $Domain -Server $Server -User $User -Password $Password
 		
+		Invoke-ADGetIPInfo -Domain $Domain -Server $Server -User $User -Password $Password
+		
+		Invoke-ADGetPortInfo -Domain $Domain -Server $Server -User $User -Password $Password
+				
 		Invoke-ADCheckSMB -Domain $Domain -Server $Server -User $User -Password $Password
 		
 		Invoke-ADCheckWebclient -Domain $Domain -Server $Server -User $User -Password $Password
@@ -3025,182 +3037,6 @@ Invoke-ADCheckDomainJoin -Domain 'contoso.com' -Server 'dc1.contoso.com' -User '
 	}
 }
 
-Function Invoke-ADGetIPInfo {
-<#
-.SYNOPSIS
-Author: Jony Schats - 0xjs
-Required Dependencies: Invoke-ChangeDNS
-Optional Dependencies: None
-
-.DESCRIPTION
-Retrieves all domain computers and checks their IP with nslookup. It then creates /24 ranges of each network found which can be used for scanning the network. Requires the correct DNS server of the domain to be set, with for example Invoke-ChangeDNS.
-
-.PARAMETER Domain
-Specifies the domain to use for the query and creating outputdirectory.
-
-.PARAMETER Server
-Specifies an Active Directory server IP to bind to, e.g. 10.0.0.1
-
-.PARAMETER User
-Specifies the username to use for the query.
-
-.PARAMETER Password
-Specifies the Password in combination with the username to use for the query.
-
-.PARAMETER OutputDirectory
-Specifies the path to use for the output directory, defaults to the current directory.
-
-.EXAMPLE
-Invoke-ADGetIPInfo -Domain 'contoso.com' -Server 'dc1.contoso.com' -User '0xjs' -Password 'Password01!'
-#>
-
-	#Parameters
-	[CmdletBinding()]
-	Param(
-		[Parameter(Mandatory=$true,HelpMessage="Enter a domain name here, e.g. contoso.com")]
-		[ValidateNotNullOrEmpty()]
-		[string]$Domain,
-		
-		[Parameter(Mandatory=$true,HelpMessage="Enter a IP of a domain controller here, e.g. 10.0.0.1")]
-		[ValidateNotNullOrEmpty()]
-		[string]$Server,
-		
-		[Parameter(Mandatory=$true,HelpMessage="Enter the username to connect with")]
-		[ValidateNotNullOrEmpty()]
-		[string]$User,
-		
-		[Parameter(Mandatory=$true,HelpMessage="Enter the password of the user")]
-		[ValidateNotNullOrEmpty()]
-		[string]$Password,
-		
-		[Parameter(Mandatory=$false)]
-		[ValidateNotNullOrEmpty()]
-		[string]$OutputDirectory
-	)
-
-	if ($OutputDirectoryCreated -ne $true) {
-		if ($PSBoundParameters['OutputDirectory']) {
-			New-OutputDirectory -Domain $Domain -OutputDirectory $OutputDirectory
-			}
-			else {
-				New-OutputDirectory -Domain $Domain
-		}
-	}
-	
-	if ($User -ne $Creds.Username) {
-		Create-CredentialObject -User $User -Password $Password -Domain $Domain
-	}
-
-	# Retrieving IP's for each machine
-	Write-Host "---Retrieving IP-adresses through DNS for each machine---"
-	$data = (Get-DomainComputer -Domain $Domain -Server $Server -Credential $Creds -ErrorAction silentlycontinue | Where-Object dnshostname | Select-Object dnshostname | Sort-Object).dnshostname
-	$data2 = $data | Resolve-DnsName -Server $Server -TcpOnly -Erroraction silentlycontinue
-	
-	$file = "$data_path\computers_name_ip.txt"
-	Write-Host "[W] Writing dnshostname + ip to $file"
-	$data2 | Out-File -Encoding utf8 $file
-	
-	$file = "$data_path\computers_ips.txt"
-	Write-Host "[W] Writing all ips to $file"
-	($data2).IPAddress | Out-File -Encoding utf8 $file
-	Write-Host " "
-	
-	Write-Host "---Calculating /24 ranges from IP's---"
-    $data3 = ($data2).IPAddress -split "\d{1,3}$" | Sort-Object -Unique | ? {$_ -ne ""} | foreach {$_ +  "0/24"}
-	$file = "$data_path\computers_ipranges.txt"
-	Write-Host "[W] Writing all possible /24 ranges to $file"
-	$data3 | Out-File -Encoding utf8 $file
-}
-
-Function Invoke-ADCheckReachableComputers {
-<#
-.SYNOPSIS
-Author: Jony Schats - 0xjs
-Required Dependencies: None
-Optional Dependencies: None
-
-.DESCRIPTION
-Check which computers are reachable from the current machine with Get-NetConnection (ping).
-
-.PARAMETER Domain
-Specifies the domain to use for the query and creating outputdirectory.
-
-.PARAMETER Server
-Specifies an Active Directory server IP to bind to, e.g. 10.0.0.1
-
-.PARAMETER User
-Specifies the username to use for the query.
-
-.PARAMETER Password
-Specifies the Password in combination with the username to use for the query.
-
-.PARAMETER OutputDirectory
-Specifies the path to use for the output directory, defaults to the current directory.
-
-.EXAMPLE
-Invoke-ADCheckReachableComputers -Domain 'contoso.com' -Server 'dc1.contoso.com' -User '0xjs' -Password 'Password01!'
-#>
-
-	#Parameters
-	[CmdletBinding()]
-	Param(
-		[Parameter(Mandatory=$true,HelpMessage="Enter a domain name here, e.g. contoso.com")]
-		[ValidateNotNullOrEmpty()]
-		[string]$Domain,
-		
-		[Parameter(Mandatory=$true,HelpMessage="Enter a IP of a domain controller here, e.g. 10.0.0.1")]
-		[ValidateNotNullOrEmpty()]
-		[string]$Server,
-		
-		[Parameter(Mandatory=$true,HelpMessage="Enter the username to connect with")]
-		[ValidateNotNullOrEmpty()]
-		[string]$User,
-		
-		[Parameter(Mandatory=$true,HelpMessage="Enter the password of the user")]
-		[ValidateNotNullOrEmpty()]
-		[string]$Password,
-		
-		[Parameter(Mandatory=$false)]
-		[ValidateNotNullOrEmpty()]
-		[string]$OutputDirectory
-	)
-
-	if ($OutputDirectoryCreated -ne $true) {
-		if ($PSBoundParameters['OutputDirectory']) {
-			New-OutputDirectory -Domain $Domain -OutputDirectory $OutputDirectory
-			}
-			else {
-				New-OutputDirectory -Domain $Domain
-		}
-	}
-	
-	if ($User -ne $Creds.Username) {
-		Create-CredentialObject -User $User -Password $Password -Domain $Domain
-	}	
-	
-	# Check if there are reachable computers
-	Write-Host "---Checking which machines are reachable from current machine through ping---"
-	$data = Get-DomainComputer -Domain $Domain -Server $Server -Credential $Creds -Ping -ErrorAction silentlycontinue | Where-Object dnshostname | Select-Object dnshostname | Sort-Object
-	$file = "$data_path\computers_accessible.txt"
-	if ($data){ 
-			$count = $data | Measure-Object | Select-Object -expand Count
-			Write-Host -ForegroundColor DarkGreen "[+] There are $count computers which are reachable"
-			Write-Host "[W] Writing to $file"
-			$data | Out-File -Encoding utf8 $file
-			$data = Get-Content $file
-			$data = $data | Sort-Object -Unique 
-			$data = $data -replace 'dnshostname', '' -replace '-----------', '' #remove strings
-			$data = $data.Trim() | ? {$_.trim() -ne "" } #Remove spaces and white lines
-			$data = $data | Sort-Object -Unique
-			echo " " | Out-File -Encoding utf8 $file
-			$data | Out-File -Encoding utf8 $file -Append
-		}
-		else {
-			Write-Host -ForegroundColor Red "[+] There are no reachable computers, probably something wrong with DNS"
-		}
-	Write-Host " "
-}
-
 Function Invoke-ADCheckSysvolPassword {
 <#
 .SYNOPSIS
@@ -3382,159 +3218,6 @@ Invoke-ADCheckNetlogonPassword -Domain 'contoso.com' -Server 'dc1.contoso.com' -
 		}
 	}
 	Write-Host " "
-}
-
-Function Invoke-ADCheckSMB {
-<#
-.SYNOPSIS
-Author: Jony Schats - 0xjs
-Required Dependencies: Invoke-ADCheckReachableComputers
-Optional Dependencies: None
-
-.DESCRIPTION
-Run crackmapexec with the provided credentials against all reachable computers within the domain and enumerate shares. Save the output which is getting parsed to find hosts with SMBv1 enabled, Signing false and creatte a list of all readable and writeable shares.
-
-.PARAMETER Domain
-Specifies the domain to use for the query and creating outputdirectory.
-
-.PARAMETER Server
-Specifies an Active Directory server IP to bind to, e.g. 10.0.0.1
-
-.PARAMETER User
-Specifies the username to use for the query.
-
-.PARAMETER Password
-Specifies the Password in combination with the username to use for the query.
-
-.PARAMETER OutputDirectory
-Specifies the path to use for the output directory, defaults to the current directory.
-
-.EXAMPLE
-Invoke-ADCheckSMB -Domain 'contoso.com' -Server 'dc1.contoso.com' -User '0xjs' -Password 'Password01!'
-#>
-
-	#Parameters
-	[CmdletBinding()]
-	Param(
-		[Parameter(Mandatory=$true,HelpMessage="Enter a domain name here, e.g. contoso.com")]
-		[ValidateNotNullOrEmpty()]
-		[string]$Domain,
-		
-		[Parameter(Mandatory=$true,HelpMessage="Enter a IP of a domain controller here, e.g. 10.0.0.1")]
-		[ValidateNotNullOrEmpty()]
-		[string]$Server,
-		
-		[Parameter(Mandatory=$true,HelpMessage="Enter the username to connect with")]
-		[ValidateNotNullOrEmpty()]
-		[string]$User,
-		
-		[Parameter(Mandatory=$true,HelpMessage="Enter the password of the user")]
-		[ValidateNotNullOrEmpty()]
-		[string]$Password,
-		
-		[Parameter(Mandatory=$false)]
-		[ValidateNotNullOrEmpty()]
-		[string]$OutputDirectory
-	)
-
-	if ($OutputDirectoryCreated -ne $true) {
-		if ($PSBoundParameters['OutputDirectory']) {
-			New-OutputDirectory -Domain $Domain -OutputDirectory $OutputDirectory
-			}
-			else {
-				New-OutputDirectory -Domain $Domain
-		}
-	}
-	
-	if (-not(Test-Path -Path $data_path\computers_accessible.txt)) {
-		Invoke-ADCheckReachableComputers -Domain $Domain -Server $Server -User $User -Password $Password
-	}
-	
-	# Collecting SMB data and shares with crackmapexec
-	Write-Host "---Running crackmapexec against each reachable host enumerating SMB data and shares---"
-	Write-Host -ForeGroundColor yellow "[+] Crackmapexec will hang and needs a enter to continue"
-	$data = python.exe $CME_Path smb $data_path\computers_accessible.txt -d $Domain -u $User -p $Password --shares 2> null
-	$file = "$data_path\crackmapexec_reachablecomputers.txt"
-	if ($data){ 
-			Write-Host "[W] Writing to $file"
-			# Remove the colors from the data
-			$data = $data -replace '\x1b\[[0-9;]*m'
-			$data | Out-File -Encoding utf8 $file
-			Write-Host " "
-			
-			# Filtering crackmapexec data for SMBv1 and signing
-			$data2 = $data | Select-String "name:"
-			# Remove the (R) String
-			$data2 = $data2 -replace '\(R\)', ''
-			# Split the output to name:<COMPuTERNAME> (domain:<DOMAIN>) (signing:False) (SMBv1:False)
-			$data2 = foreach ($line in $data2) {$line.split("(",2)[1]}
-			# Removing strings so we can create a PS Object
-			$data2 = $data2 -replace 'name:', '' -replace 'signing:', '' -replace 'SMBv1:', '' -replace '\(', '' -replace '\)', ''
-			# Selecting the hostname, SMBv1 and Signing values
-			$data2 = $data2 | ConvertFrom-String | Select-Object p1, p3, p4
-			# Renaming the p11, p13 and p14
-			$data2 = $data2 | Add-Member -MemberType AliasProperty -Name hostname -Value P1 -PassThru | Add-Member -MemberType AliasProperty -Name signing -Value P3 -PassThru | Add-Member -MemberType AliasProperty -Name smbv1 -Value P4 -PassThru | Select-Object hostname, signing, smbv1
-			
-			# Checking for SMBV1
-			Write-Host "---Checking for hosts which have SMBV1 enabled---"
-			$data3 = $data2 | Where-Object -Property smbv1 -EQ True | Select-Object hostname
-			$file = "$findings_path\computers_smbv1.txt"
-			if ($data3){ 
-					$count = $data3 | Measure-Object | Select-Object -expand Count
-					Write-Host -ForegroundColor Red "[+] There are $count reachable computers which have SMBV1 enabled (SMBv1:True)"
-					Write-Host "[W] Writing to $file"
-					$data3 | Out-File -Encoding utf8 $file
-				}
-				else {
-					Write-Host -ForegroundColor DarkGreen "[+] There are no reachable computers which have SMBV1 enabled (SMBv1:True)"
-				}
-			Write-Host " "
-			
-			# Checking for SMB Signing
-			Write-Host "---Checking for hosts without signing---"
-			$data3 = $data2 | Where-Object -Property signing -EQ False | Select-Object hostname
-			$file = "$findings_path\computers_nosigning.txt"
-			if ($data3){ 
-					$count = $data3 | Measure-Object | Select-Object -expand Count
-					Write-Host -ForegroundColor Red "[+] There are $count reachable computers which doesn't require signing (Signing:False)"
-					Write-Host "[W] Writing to $file"
-					$data3 | Out-File -Encoding utf8 $file
-				}
-				else {
-					Write-Host -ForegroundColor DarkGreen "[+] There are no reachable computers which do not require signing (Signing:False)"
-				}
-			Write-Host " "
-			
-			# Checking for readable shares
-			Write-Host "---Checking for shares with READ access---"
-			$file = "$data_path\shares_read_access.txt"
-			$data2 = $data | Select-String "READ" | Select-String -NotMatch IPC | Select-String -NotMatch PRINT
-			if ($data2){ 
-					$count = $data2 | Measure-Object | Select-Object -expand Count
-					Write-Host -ForegroundColor Yellow "[+] There are $count shares the current user can READ"
-					Write-Host "[W] Writing to $file"
-					$data2 | Out-File -Encoding utf8 $file
-				}
-				else {
-					Write-Host -ForegroundColor DarkGreen "[+] There are no shares the current user can READ"
-				}
-			Write-Host " "
-			
-			# Checking for writeable shares
-			Write-Host "---Checking for shares with WRITE access---"
-			$data2 = $data | Select-String "WRITE" | Select-String -NotMatch IPC | Select-String -NotMatch PRINT
-			$file = "$data_path\shares_write_access.txt"
-			if ($data3){ 
-					$count = $data2 | Measure-Object | Select-Object -expand Count
-					Write-Host -ForegroundColor Yellow "[+] There are $count shares the current user can WRITE to"
-					Write-Host "[W] Writing to $file"
-					$data2 | Out-File -Encoding utf8 $file
-				}
-				else {
-					Write-Host -ForegroundColor DarkGreen "[+] There are no shares the current user can WRITE to"
-				}
-			Write-Host " "
-	}
 }
 
 Function Invoke-ADCheckPrintspoolerDC {
@@ -3761,109 +3444,11 @@ Invoke-ADCheckExchange -Domain 'contoso.com' -Server 'dc1.contoso.com' -User '0x
 	Write-Host " "
 }
 
-Function Invoke-ADCheckWebclient {
-<#
-.SYNOPSIS
-Author: Jony Schats - 0xjs
-Required Dependencies: Invoke-ADCheckReachableComputers 
-Optional Dependencies: None
-
-.DESCRIPTION
-Check if the webclient service is running on all reachable computers.
-
-.PARAMETER Domain
-Specifies the domain to use for the query and creating outputdirectory.
-
-.PARAMETER Server
-Specifies an Active Directory server IP to bind to, e.g. 10.0.0.1
-
-.PARAMETER User
-Specifies the username to use for the query.
-
-.PARAMETER Password
-Specifies the Password in combination with the username to use for the query.
-
-.PARAMETER OutputDirectory
-Specifies the path to use for the output directory, defaults to the current directory.
-
-.EXAMPLE
-Invoke-ADCheckWebclient -Domain 'contoso.com' -Server 'dc1.contoso.com' -User '0xjs' -Password 'Password01!'
-#>
-
-	#Parameters
-	[CmdletBinding()]
-	Param(
-		[Parameter(Mandatory=$true,HelpMessage="Enter a domain name here, e.g. contoso.com")]
-		[ValidateNotNullOrEmpty()]
-		[string]$Domain,
-		
-		[Parameter(Mandatory=$true,HelpMessage="Enter a IP of a domain controller here, e.g. 10.0.0.1")]
-		[ValidateNotNullOrEmpty()]
-		[string]$Server,
-		
-		[Parameter(Mandatory=$true,HelpMessage="Enter the username to connect with")]
-		[ValidateNotNullOrEmpty()]
-		[string]$User,
-		
-		[Parameter(Mandatory=$true,HelpMessage="Enter the password of the user")]
-		[ValidateNotNullOrEmpty()]
-		[string]$Password,
-		
-		[Parameter(Mandatory=$false)]
-		[ValidateNotNullOrEmpty()]
-		[string]$OutputDirectory
-	)
-
-	if ($User -ne $Creds.Username) {
-		Create-CredentialObject -User $User -Password $Password -Domain $Domain
-	}	
-
-	if ($OutputDirectoryCreated -ne $true) {
-		if ($PSBoundParameters['OutputDirectory']) {
-			New-OutputDirectory -Domain $Domain -OutputDirectory $OutputDirectory
-			}
-			else {
-				New-OutputDirectory -Domain $Domain
-		}
-	}
-	
-	if (-not(Test-Path -Path $data_path\computers_accessible.txt)) {
-		Invoke-ADCheckReachableComputers -Domain $Domain -Server $Server -User $User -Password $Password
-	}
-	
-	Write-Host "---Running crackmapexec against each reachable host enumerating webclient service---"
-	Write-Host -ForeGroundColor yellow "[+] Crackmapexec will hang and needs a enter to continue"
-	$data = python.exe $CME_Path smb $data_path\computers_accessible.txt -d $Domain -u $User -p $Password -M webdav | Select-String "WebClient Service enabled on"
-	
-	if ($data){
-		# Writing all data to file
-		$file = "$data_path\crackmapexec_webdav.txt"
-		Write-Host "[W] Writing all data to $file"
-		$data = $data -replace '\x1b\[[0-9;]*m'
-		$data | Out-File -Encoding utf8 $file	
-		Write-Host " "
-		
-		# Writing hostnames to findings file
-		$file = "$findings_path\computers_webdav.txt"
-		$count = $data | Measure-Object | Select-Object -expand Count
-		Write-Host -ForegroundColor Red "[+] There are $count systems with the webclient service running"
-		Write-Host "[W] Writing to $file"
-		# Remove the colors from the data
-		$data1 = foreach ($line in $data) {$line.split(":",2)[1]}
-		$data1 = $data1.Trim() | ? {$_.trim() -ne "" } #Remove spaces and white lines
-		$data1 | Out-File -Encoding utf8 $file
-		Write-Host " "
-	}
-	else {
-		Write-Host -ForegroundColor DarkGreen "[+] There are no systems with the webclient service running"
-	}
-}
-
 Function Invoke-ADCheckLDAP {
 <#
 .SYNOPSIS
 Author: Jony Schats - 0xjs
-Required Dependencies: Invoke-ADCheckReachableComputers 
+Required Dependencies: None
 Optional Dependencies: None
 
 .DESCRIPTION
@@ -4354,4 +3939,654 @@ Invoke-ADCheckFineGrainedPasswordPolicy -Domain 'contoso.com' -Server 'dc1.conto
 	}
 	
 	Write-Host " "
+}
+
+Function Invoke-ADGetIPInfo {
+<#
+.SYNOPSIS
+Author: Jony Schats - 0xjs
+Required Dependencies: Invoke-ChangeDNS
+Optional Dependencies: None
+
+.DESCRIPTION
+Retrieves all domain computers and checks their IP with nslookup. It then creates /24 ranges of each network found which can be used for scanning the network. Requires the correct DNS server of the domain to be set, with for example Invoke-ChangeDNS.
+
+.PARAMETER Domain
+Specifies the domain to use for the query and creating outputdirectory.
+
+.PARAMETER Server
+Specifies an Active Directory server IP to bind to, e.g. 10.0.0.1
+
+.PARAMETER User
+Specifies the username to use for the query.
+
+.PARAMETER Password
+Specifies the Password in combination with the username to use for the query.
+
+.PARAMETER OutputDirectory
+Specifies the path to use for the output directory, defaults to the current directory.
+
+.EXAMPLE
+Invoke-ADGetIPInfo -Domain 'contoso.com' -Server 'dc1.contoso.com' -User '0xjs' -Password 'Password01!'
+#>
+
+	#Parameters
+	[CmdletBinding()]
+	Param(
+		[Parameter(Mandatory=$true,HelpMessage="Enter a domain name here, e.g. contoso.com")]
+		[ValidateNotNullOrEmpty()]
+		[string]$Domain,
+		
+		[Parameter(Mandatory=$true,HelpMessage="Enter a IP of a domain controller here, e.g. 10.0.0.1")]
+		[ValidateNotNullOrEmpty()]
+		[string]$Server,
+		
+		[Parameter(Mandatory=$true,HelpMessage="Enter the username to connect with")]
+		[ValidateNotNullOrEmpty()]
+		[string]$User,
+		
+		[Parameter(Mandatory=$true,HelpMessage="Enter the password of the user")]
+		[ValidateNotNullOrEmpty()]
+		[string]$Password,
+		
+		[Parameter(Mandatory=$false)]
+		[ValidateNotNullOrEmpty()]
+		[string]$OutputDirectory
+	)
+
+	if ($OutputDirectoryCreated -ne $true) {
+		if ($PSBoundParameters['OutputDirectory']) {
+			New-OutputDirectory -Domain $Domain -OutputDirectory $OutputDirectory
+			}
+			else {
+				New-OutputDirectory -Domain $Domain
+		}
+	}
+	
+	if ($User -ne $Creds.Username) {
+		Create-CredentialObject -User $User -Password $Password -Domain $Domain
+	}
+
+	# Retrieving IP's for each machine
+	Write-Host "---Retrieving IP-adresses through DNS for each machine---"
+	$data = (Get-DomainComputer -Domain $Domain -Server $Server -Credential $Creds -ErrorAction silentlycontinue | Where-Object dnshostname | Select-Object dnshostname | Sort-Object).dnshostname
+	$data2 = $data | Resolve-DnsName -Server $Server -TcpOnly -Erroraction silentlycontinue
+	
+	$file = "$data_path\computers_name_ip.txt"
+	Write-Host "[W] Writing dnshostname + ip to $file"
+	$data2 | Out-File -Encoding utf8 $file
+	
+	$file = "$data_path\computers_ips.txt"
+	Write-Host "[W] Writing all ips to $file"
+	($data2).IPAddress | Out-File -Encoding utf8 $file
+	Write-Host " "
+	
+	Write-Host "---Calculating /24 ranges from IP's---"
+    $data3 = ($data2).IPAddress -split "\d{1,3}$" | Sort-Object -Unique | ? {$_ -ne ""} | foreach {$_ +  "0/24"}
+	$file = "$data_path\computers_ipranges.txt"
+	Write-Host "[W] Writing all possible /24 ranges to $file"
+	$data3 | Out-File -Encoding utf8 $file
+	Write-Host " "
+}
+
+Function Invoke-ADGetPortInfo {
+<#
+.SYNOPSIS
+Author: Jony Schats - 0xjs
+Required Dependencies: Invoke-ADGetIPInfo
+Optional Dependencies: None
+
+.DESCRIPTION
+Scan for common Windows ports of all hosts from Invoke-ADGetIPInfo.
+
+.PARAMETER Domain
+Specifies the domain to use for the query and creating outputdirectory.
+
+.PARAMETER Server
+Specifies an Active Directory server IP to bind to, e.g. 10.0.0.1
+
+.PARAMETER User
+Specifies the username to use for the query.
+
+.PARAMETER Password
+Specifies the Password in combination with the username to use for the query.
+
+.PARAMETER OutputDirectory
+Specifies the path to use for the output directory, defaults to the current directory.
+
+.EXAMPLE
+Invoke-ADGetPortInfo -Domain 'contoso.com' -Server 'dc1.contoso.com' -User '0xjs' -Password 'Password01!'
+#>
+
+	#Parameters
+	[CmdletBinding()]
+	Param(
+		[Parameter(Mandatory=$true,HelpMessage="Enter a domain name here, e.g. contoso.com")]
+		[ValidateNotNullOrEmpty()]
+		[string]$Domain,
+		
+		[Parameter(Mandatory=$true,HelpMessage="Enter a IP of a domain controller here, e.g. 10.0.0.1")]
+		[ValidateNotNullOrEmpty()]
+		[string]$Server,
+		
+		[Parameter(Mandatory=$true,HelpMessage="Enter the username to connect with")]
+		[ValidateNotNullOrEmpty()]
+		[string]$User,
+		
+		[Parameter(Mandatory=$true,HelpMessage="Enter the password of the user")]
+		[ValidateNotNullOrEmpty()]
+		[string]$Password,
+		
+		[Parameter(Mandatory=$false)]
+		[ValidateNotNullOrEmpty()]
+		[string]$OutputDirectory
+	)
+
+	if ($OutputDirectoryCreated -ne $true) {
+		if ($PSBoundParameters['OutputDirectory']) {
+			New-OutputDirectory -Domain $Domain -OutputDirectory $OutputDirectory
+			}
+			else {
+				New-OutputDirectory -Domain $Domain
+		}
+	}
+	
+	if ($User -ne $Creds.Username) {
+		Create-CredentialObject -User $User -Password $Password -Domain $Domain
+	}
+	
+	$inputfile ="$data_path\computers_ipranges.txt"
+	
+	if (-not(Test-Path -Path $inputfile)) {
+		Invoke-ADGetIPInfo -Domain $Domain -Server $Server -User $User -Password $Password
+	}
+	
+	$portsfile = "$data_path\ports.txt"
+	$ports = "22
+		80
+		443
+		139
+		445
+		1433
+		3389
+		5985
+		5986"
+	$ports | Out-File -Encoding utf8 $portsfile
+	$file = "$data_path\computers_openports.csv"
+	
+	Write-Host "---Scanning Windows ports to find systems in each range---"
+	
+	Invoke-Portscan -HostFile $inputfile -PortFile $portsfile -SkipDiscovery -ErrorAction silentlycontinue | Export-Csv -Path $file
+	Write-Host "[W] Writing all scandata to $file"
+	
+	$filehostsalive = "$data_path\scandata_hostalive.csv"
+	$filehostsalive2 = "$data_path\scandata_hostalive.txt"
+	$hostsalive = Import-Csv -Path $file | Where-Object -Property openPorts | Select-Object Hostname, openPorts 
+	$hostsalive | Export-Csv -Path $filehostsalive
+	$count = $hostsalive | Measure-Object | Select-Object -expand Count
+	Write-Host "[+] There are $count computers with open ports"
+	Write-Host "[W] Writing to $filehostsalive"
+	
+	$hostsalive.Hostname | Out-File -Encoding utf8 $filehostsalive2
+	Write-Host "[W] Writing to $filehostsalive2"
+	
+	$output = ($hostsalive | Where-Object -Property openPorts -Match "445").Hostname
+	if ($output) {
+		$count = $output | Measure-Object | Select-Object -expand Count
+		$output | Out-File -Encoding utf8 "$data_path\scandata_hostalive_smb.txt"
+		Write-Host "[W] Writing $count SMB hosts to $data_path\scandata_hostalive_smb.txt"
+	}
+	
+	$output = ($hostsalive | Where-Object -Property openPorts -Match "5985").Hostname
+	if ($output) {
+		$count = $output | Measure-Object | Select-Object -expand Count
+		$output | Out-File -Encoding utf8 "$data_path\scandata_hostalive_winrm.txt"
+		Write-Host "[W] Writing $count WINRM hosts to $data_path\scandata_hostalive_winrm.txt"
+	}
+	
+	$output = ($hostsalive | Where-Object -Property openPorts -Match "1433").Hostname
+	if ($output) {
+		$count = $output | Measure-Object | Select-Object -expand Count
+		$output | Out-File -Encoding utf8 "$data_path\scandata_hostalive_mssql.txt"
+		Write-Host "[W] Writing $count MSSQL hosts to $data_path\scandata_hostalive_mssql.txt"
+	}
+	
+	$output = ($hostsalive | Where-Object -Property openPorts -Match "3389").Hostname
+	if ($output) {
+		$count = $output | Measure-Object | Select-Object -expand Count
+		$output | Out-File -Encoding utf8 "$data_path\scandata_hostalive_rdp.txt"
+		Write-Host "[W] Writing $count RDP hosts to $data_path\scandata_hostalive_rdp.txt"
+	}
+}
+
+Function Invoke-ADCheckSMB {
+<#
+.SYNOPSIS
+Author: Jony Schats - 0xjs
+Required Dependencies: Invoke-ADGetPortInfo
+Optional Dependencies: None
+
+.DESCRIPTION
+Run crackmapexec with the provided credentials against all discovered SMB hosts within the domain and enumerate shares. Save the output which is getting parsed to find hosts with SMBv1 enabled, Signing false and creatte a list of all readable and writeable shares.
+
+.PARAMETER Domain
+Specifies the domain to use for the query and creating outputdirectory.
+
+.PARAMETER Server
+Specifies an Active Directory server IP to bind to, e.g. 10.0.0.1
+
+.PARAMETER User
+Specifies the username to use for the query.
+
+.PARAMETER Password
+Specifies the Password in combination with the username to use for the query.
+
+.PARAMETER OutputDirectory
+Specifies the path to use for the output directory, defaults to the current directory.
+
+.EXAMPLE
+Invoke-ADCheckSMB -Domain 'contoso.com' -Server 'dc1.contoso.com' -User '0xjs' -Password 'Password01!'
+#>
+
+	#Parameters
+	[CmdletBinding()]
+	Param(
+		[Parameter(Mandatory=$true,HelpMessage="Enter a domain name here, e.g. contoso.com")]
+		[ValidateNotNullOrEmpty()]
+		[string]$Domain,
+		
+		[Parameter(Mandatory=$true,HelpMessage="Enter a IP of a domain controller here, e.g. 10.0.0.1")]
+		[ValidateNotNullOrEmpty()]
+		[string]$Server,
+		
+		[Parameter(Mandatory=$true,HelpMessage="Enter the username to connect with")]
+		[ValidateNotNullOrEmpty()]
+		[string]$User,
+		
+		[Parameter(Mandatory=$true,HelpMessage="Enter the password of the user")]
+		[ValidateNotNullOrEmpty()]
+		[string]$Password,
+		
+		[Parameter(Mandatory=$false)]
+		[ValidateNotNullOrEmpty()]
+		[string]$OutputDirectory
+	)
+
+	if ($OutputDirectoryCreated -ne $true) {
+		if ($PSBoundParameters['OutputDirectory']) {
+			New-OutputDirectory -Domain $Domain -OutputDirectory $OutputDirectory
+			}
+			else {
+				New-OutputDirectory -Domain $Domain
+		}
+	}
+	
+	$smbhostsfile = "$data_path\scandata_hostalive_smb.txt"
+	if (-not(Test-Path -Path $smbhostsfile)) {
+		Invoke-ADGetPortInfo -Domain $Domain -Server $Server -User $User -Password $Password
+	}
+	
+	# Collecting SMB data and shares with crackmapexec
+	Write-Host "---Running crackmapexec against each SMB host enumerating SMB data and shares---"
+	Write-Host -ForeGroundColor yellow "[+] Crackmapexec will hang and needs a enter to continue"
+	$data = python.exe $CME_Path smb $smbhostsfile -d $Domain -u $User -p $Password --shares 2> null
+	$file = "$data_path\crackmapexec_smbcomputers.txt"
+	if ($data){ 
+			Write-Host "[W] Writing to $file"
+			# Remove the colors from the data
+			$data = $data -replace '\x1b\[[0-9;]*m'
+			$data | Out-File -Encoding utf8 $file
+			Write-Host " "
+			
+			# Filtering crackmapexec data for SMBv1 and signing
+			$data2 = $data | Select-String "name:"
+			# Remove the (R) String
+			$data2 = $data2 -replace '\(R\)', ''
+			# Split the output to name:<COMPuTERNAME> (domain:<DOMAIN>) (signing:False) (SMBv1:False)
+			$data2 = foreach ($line in $data2) {$line.split("(",2)[1]}
+			# Removing strings so we can create a PS Object
+			$data2 = $data2 -replace 'name:', '' -replace 'signing:', '' -replace 'SMBv1:', '' -replace '\(', '' -replace '\)', ''
+			# Selecting the hostname, SMBv1 and Signing values
+			$data2 = $data2 | ConvertFrom-String | Select-Object p1, p3, p4
+			# Renaming the p11, p13 and p14
+			$data2 = $data2 | Add-Member -MemberType AliasProperty -Name hostname -Value P1 -PassThru | Add-Member -MemberType AliasProperty -Name signing -Value P3 -PassThru | Add-Member -MemberType AliasProperty -Name smbv1 -Value P4 -PassThru | Select-Object hostname, signing, smbv1
+			
+			# Checking for SMBV1
+			Write-Host "---Checking for hosts which have SMBV1 enabled---"
+			$data3 = $data2 | Where-Object -Property smbv1 -EQ True | Select-Object hostname
+			$file = "$findings_path\computers_smbv1.txt"
+			if ($data3){ 
+					$count = $data3 | Measure-Object | Select-Object -expand Count
+					Write-Host -ForegroundColor Red "[+] There are $count computers which have SMBV1 enabled (SMBv1:True)"
+					Write-Host "[W] Writing to $file"
+					$data3 | Out-File -Encoding utf8 $file
+				}
+				else {
+					Write-Host -ForegroundColor DarkGreen "[+] There are no computers which have SMBV1 enabled (SMBv1:True)"
+				}
+			Write-Host " "
+			
+			# Checking for SMB Signing
+			Write-Host "---Checking for hosts without signing---"
+			$data3 = $data2 | Where-Object -Property signing -EQ False | Select-Object hostname
+			$file = "$findings_path\computers_nosigning.txt"
+			if ($data3){ 
+					$count = $data3 | Measure-Object | Select-Object -expand Count
+					Write-Host -ForegroundColor Red "[+] There are $count computers which doesn't require signing (Signing:False)"
+					Write-Host "[W] Writing to $file"
+					$data3 | Out-File -Encoding utf8 $file
+				}
+				else {
+					Write-Host -ForegroundColor DarkGreen "[+] There are no computers which do not require signing (Signing:False)"
+				}
+			Write-Host " "
+			
+			# Checking for readable shares
+			Write-Host "---Checking for shares with READ access---"
+			$file = "$data_path\shares_read_access.txt"
+			$data2 = $data | Select-String "READ" | Select-String -NotMatch IPC | Select-String -NotMatch PRINT
+			if ($data2){ 
+					$count = $data2 | Measure-Object | Select-Object -expand Count
+					Write-Host -ForegroundColor Yellow "[+] There are $count shares the current user can READ"
+					Write-Host "[W] Writing to $file"
+					$data2 | Out-File -Encoding utf8 $file
+				}
+				else {
+					Write-Host -ForegroundColor DarkGreen "[+] There are no shares the current user can READ"
+				}
+			Write-Host " "
+			
+			# Checking for writeable shares
+			Write-Host "---Checking for shares with WRITE access---"
+			$data2 = $data | Select-String "WRITE" | Select-String -NotMatch IPC | Select-String -NotMatch PRINT
+			$file = "$data_path\shares_write_access.txt"
+			if ($data3){ 
+					$count = $data2 | Measure-Object | Select-Object -expand Count
+					Write-Host -ForegroundColor Yellow "[+] There are $count shares the current user can WRITE to"
+					Write-Host "[W] Writing to $file"
+					$data2 | Out-File -Encoding utf8 $file
+				}
+				else {
+					Write-Host -ForegroundColor DarkGreen "[+] There are no shares the current user can WRITE to"
+				}
+			Write-Host " "
+	}
+}
+
+Function Invoke-ADCheckWebclient {
+<#
+.SYNOPSIS
+Author: Jony Schats - 0xjs
+Required Dependencies: Invoke-ADGetPortInfo
+Optional Dependencies: None
+
+.DESCRIPTION
+Check if the webclient service is running on smb hosts
+
+.PARAMETER Domain
+Specifies the domain to use for the query and creating outputdirectory.
+
+.PARAMETER Server
+Specifies an Active Directory server IP to bind to, e.g. 10.0.0.1
+
+.PARAMETER User
+Specifies the username to use for the query.
+
+.PARAMETER Password
+Specifies the Password in combination with the username to use for the query.
+
+.PARAMETER OutputDirectory
+Specifies the path to use for the output directory, defaults to the current directory.
+
+.EXAMPLE
+Invoke-ADCheckWebclient -Domain 'contoso.com' -Server 'dc1.contoso.com' -User '0xjs' -Password 'Password01!'
+#>
+
+	#Parameters
+	[CmdletBinding()]
+	Param(
+		[Parameter(Mandatory=$true,HelpMessage="Enter a domain name here, e.g. contoso.com")]
+		[ValidateNotNullOrEmpty()]
+		[string]$Domain,
+		
+		[Parameter(Mandatory=$true,HelpMessage="Enter a IP of a domain controller here, e.g. 10.0.0.1")]
+		[ValidateNotNullOrEmpty()]
+		[string]$Server,
+		
+		[Parameter(Mandatory=$true,HelpMessage="Enter the username to connect with")]
+		[ValidateNotNullOrEmpty()]
+		[string]$User,
+		
+		[Parameter(Mandatory=$true,HelpMessage="Enter the password of the user")]
+		[ValidateNotNullOrEmpty()]
+		[string]$Password,
+		
+		[Parameter(Mandatory=$false)]
+		[ValidateNotNullOrEmpty()]
+		[string]$OutputDirectory
+	)
+
+	if ($User -ne $Creds.Username) {
+		Create-CredentialObject -User $User -Password $Password -Domain $Domain
+	}	
+
+	if ($OutputDirectoryCreated -ne $true) {
+		if ($PSBoundParameters['OutputDirectory']) {
+			New-OutputDirectory -Domain $Domain -OutputDirectory $OutputDirectory
+			}
+			else {
+				New-OutputDirectory -Domain $Domain
+		}
+	}
+	
+	$smbhostsfile = "$data_path\scandata_hostalive_smb.txt"
+	if (-not(Test-Path -Path $smbhostsfile)) {
+		Invoke-ADGetPortInfo -Domain $Domain -Server $Server -User $User -Password $Password
+	}
+	
+	Write-Host "---Running crackmapexec against all smb host enumerating webclient service---"
+	Write-Host -ForeGroundColor yellow "[+] Crackmapexec will hang and needs a enter to continue"
+	$data = python.exe $CME_Path smb $smbhostsfile -d $Domain -u $User -p $Password -M webdav | Select-String "WebClient Service enabled on"
+	
+	if ($data){
+		# Writing all data to file
+		$file = "$data_path\crackmapexec_webdav.txt"
+		Write-Host "[W] Writing all data to $file"
+		$data = $data -replace '\x1b\[[0-9;]*m'
+		$data | Out-File -Encoding utf8 $file	
+		Write-Host " "
+		
+		# Writing hostnames to findings file
+		$file = "$findings_path\computers_webdav.txt"
+		$count = $data | Measure-Object | Select-Object -expand Count
+		Write-Host -ForegroundColor Red "[+] There are $count systems with the webclient service running"
+		Write-Host "[W] Writing to $file"
+
+		$regex = [regex] "\b(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\b"
+		$data = $regex.Matches($data) | %{ $_.value } | sort-object -unique
+		$data | Out-File -Encoding utf8 $file
+		Write-Host " "
+	}
+	else {
+		Write-Host -ForegroundColor DarkGreen "[+] There are no systems with the webclient service running"
+	}
+}
+
+Function Invoke-ADCheckAccess {
+<#
+.SYNOPSIS
+Author: Jony Schats - 0xjs
+Required Dependencies: Invoke-ADGetPortInfo
+Optional Dependencies: None
+
+.DESCRIPTION
+
+
+.PARAMETER Domain
+Specifies the domain to use for the query and creating outputdirectory.
+
+.PARAMETER Server
+Specifies an Active Directory server IP to bind to, e.g. 10.0.0.1
+
+.PARAMETER User
+Specifies the username to use for the query.
+
+.PARAMETER Password
+Specifies the Password in combination with the username to use for the query.
+
+.PARAMETER OutputDirectory
+Specifies the path to use for the output directory, defaults to the current directory.
+
+.EXAMPLE
+Invoke-ADCheckSMB -Domain 'contoso.com' -Server 'dc1.contoso.com' -User '0xjs' -Password 'Password01!'
+#>
+
+	#Parameters
+	[CmdletBinding()]
+	Param(
+		[Parameter(Mandatory=$true,HelpMessage="Enter a domain name here, e.g. contoso.com")]
+		[ValidateNotNullOrEmpty()]
+		[string]$Domain,
+		
+		[Parameter(Mandatory=$true,HelpMessage="Enter a IP of a domain controller here, e.g. 10.0.0.1")]
+		[ValidateNotNullOrEmpty()]
+		[string]$Server,
+		
+		[Parameter(Mandatory=$true,HelpMessage="Enter the username to connect with")]
+		[ValidateNotNullOrEmpty()]
+		[string]$User,
+		
+		[Parameter(Mandatory=$true,HelpMessage="Enter the password of the user")]
+		[ValidateNotNullOrEmpty()]
+		[string]$Password,
+		
+		[Parameter(Mandatory=$false)]
+		[ValidateNotNullOrEmpty()]
+		[string]$OutputDirectory
+	)
+
+	if ($OutputDirectoryCreated -ne $true) {
+		if ($PSBoundParameters['OutputDirectory']) {
+			New-OutputDirectory -Domain $Domain -OutputDirectory $OutputDirectory
+			}
+			else {
+				New-OutputDirectory -Domain $Domain
+		}
+	}
+	
+	$smbhostsfile = "$data_path\scandata_hostalive_smb.txt"
+	if (Test-Path -Path $smbhostsfile) {
+		# Checking for local admin SMB
+		Write-Host "---Checking for local admin access over SMB---"
+		Write-Host -ForeGroundColor yellow "[+] Crackmapexec will hang and needs a enter to continue"
+		$data = python.exe $CME_Path smb $smbhostsfile -d $Domain -u $User -p $Password | Select-String "Pwn3d!"
+	
+		if ($data){
+			# Remove colors from the data
+			$data = $data -replace '\x1b\[[0-9;]*m'
+			$regex = [regex] "\b(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\b"
+			$data = $regex.Matches($data) | %{ $_.value } | sort-object -unique
+			
+			# Writing hostnames to findings file
+			$file = "$findings_path\access_localadmin_smb.txt"
+			$count = $data | Measure-Object | Select-Object -expand Count
+			Write-Host -ForegroundColor Red "[+] There are $count systems where the current user has local admin over SMB"
+			Write-Host "[W] Writing to $file"
+			$data | Out-File -Encoding utf8 $file
+			Write-Host " "
+		}
+		else {
+			Write-Host -ForegroundColor DarkGreen "[+] There are no systems where the current user has local admin over SMB"
+		}
+	}
+	else {
+		Write-Host -ForegroundColor DarkGreen "[+] Skipping SMB no hosts"
+	}
+	
+	$winrmhostsfile = "$data_path\scandata_hostalive_winrm.txt"
+	if (Test-Path -Path $winrmhostsfile) {
+		# Checking access WINRM
+		Write-Host "---Checking for access over WINRM---"
+		Write-Host -ForeGroundColor yellow "[+] Crackmapexec will hang and needs a enter to continue"
+		$data = python.exe $CME_Path winrm $winrmhostsfile -d $Domain -u $User -p $Password | Select-String "Pwn3d!"
+	
+		if ($data){
+			# Remove colors from the data
+			$data = $data -replace '\x1b\[[0-9;]*m'
+			$regex = [regex] "\b(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\b"
+			$data = $regex.Matches($data) | %{ $_.value } | sort-object -unique
+			
+			# Writing hostnames to findings file
+			$file = "$findings_path\access_winrm.txt"
+			$count = $data | Measure-Object | Select-Object -expand Count
+			Write-Host -ForegroundColor Red "[+] There are $count systems where the current user has access over WINRM"
+			Write-Host "[W] Writing to $file"
+			$data | Out-File -Encoding utf8 $file
+			Write-Host " "
+		}
+		else {
+			Write-Host -ForegroundColor DarkGreen "[+] There are no systems where the current user has access over WINRM"
+		}
+	} else {
+		Write-Host -ForegroundColor DarkGreen "[+] Skipping WinRM no hosts"
+	}
+	
+		
+	$rdphostsfile = "$data_path\scandata_hostalive_rdp.txt"
+	if (Test-Path -Path $rdphostsfile) {
+		# Checking access RDP
+		Write-Host "---Checking for access over RDP---"
+		Write-Host -ForeGroundColor yellow "[+] Crackmapexec will hang and needs a enter to continue"
+		$data = python.exe $CME_Path rdp $rdphostsfile -d $Domain -u $User -p $Password | Select-String "Pwn3d!"
+	
+		if ($data){
+			# Remove colors from the data
+			$data = $data -replace '\x1b\[[0-9;]*m'
+			$regex = [regex] "\b(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\b"
+			$data = $regex.Matches($data) | %{ $_.value } | sort-object -unique
+			
+			# Writing hostnames to findings file
+			$file = "$findings_path\access_winrm.txt"
+			$count = $data | Measure-Object | Select-Object -expand Count
+			Write-Host -ForegroundColor Red "[+] There are $count systems where the current user has access over RDP"
+			Write-Host "[W] Writing to $file"
+			$data | Out-File -Encoding utf8 $file
+			Write-Host " "
+		}
+		else {
+			Write-Host -ForegroundColor DarkGreen "[+] There are no systems where the current user has access over RDP"
+		}
+	} else {
+		Write-Host -ForegroundColor DarkGreen "[+] Skipping RDP no hosts"
+	}
+	
+		
+	#$mssqlhostsfile = "$data_path\scandata_hostalive_mssql.txt"
+	#if (Test-Path -Path $mssqlhostsfile) {
+	#	# Checking access MSSQL
+	#	Write-Host "---Checking for access over MSSQL WIP TO DO NO MSSQL IN LAB---"
+	#	Write-Host -ForeGroundColor yellow "[+] Crackmapexec will hang and needs a enter to continue"
+	#	$data = python.exe $CME_Path mssql $mssqlhostsfile -d $Domain -u $User -p $Password 2>/dev/null
+	#
+	#	if ($data){
+	#		# Remove colors from the data
+	#		$data = $data -replace '\x1b\[[0-9;]*m'
+	#		$regex = [regex] "\b(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\b"
+	#		$data = $regex.Matches($data) | %{ $_.value } | sort-object -unique
+	#		
+	#		# Writing hostnames to findings file
+	#		$file = "$findings_path\access_winrm.txt"
+	#		$count = $data | Measure-Object | Select-Object -expand Count
+	#		Write-Host -ForegroundColor Red "[+] There are $count systems where the current user has access over RDP"
+	#		Write-Host "[W] Writing to $file"
+	#		$data | Out-File -Encoding utf8 $file
+	#		Write-Host " "
+	#	}
+	#	else {
+	#		Write-Host -ForegroundColor DarkGreen "[+] There are no systems where the current user has access over RDP"
+	#	}
+	#} else {
+	#	Write-Host -ForegroundColor DarkGreen "[+] Skipping MSSQL no hosts"
+	#}
+
 }
