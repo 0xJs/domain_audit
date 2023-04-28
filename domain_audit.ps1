@@ -253,6 +253,8 @@ Start ADChecks with all modules
 		
 		Invoke-ADCheckExchange -Domain $Domain -Server $Server -User $User -Password $Password
 		
+		Invoke-ADCheckCS -Domain $Domain -Server $Server -User $User -Password $Password
+		
 		Invoke-ADCheckSysvolPassword -Domain $Domain -Server $Server -User $User -Password $Password
 		
 		Invoke-ADCheckNetlogonPassword -Domain $Domain -Server $Server -User $User -Password $Password
