@@ -153,7 +153,7 @@ Invoke-ADCheckAll will execute the following in order:
   - Check Access
     - Check if the current user is local admin through SMB
     - Check if the current user can access over WINRM
-    - Check if the current user can access over RDP (WIP)
+    - Check if the current user can access over RDP
     - Check if the current user can access over MSSQL and is sysadmin (WIP)
 
 ## TO-DO & Features
