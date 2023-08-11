@@ -171,7 +171,12 @@ Start ADChecks with all modules
 	
 	Write-Verbose "[++] Executing Test-ADAuthentication"
 	Test-ADAuthentication -Domain $Domain -Server $Server -User $User -Password $Password | Out-Null
-	
+
+	if ($CredentialStatus -eq $false) {
+		Write-Host -ForegroundColor Red "[-] Exiting, please provide a valid set op credentials"
+		break
+	}
+ 
 	if ($User -ne $Creds.Username) {
 		Create-CredentialObject -User $User -Password $Password -Domain $Domain
 		
@@ -269,9 +274,6 @@ Start ADChecks with all modules
 		
 		Invoke-ADCheckAccess -Domain $Domain -Server $Server -User $User -Password $Password
 		
-	}
-	elseif ($CredentialStatus -eq $false) {
-		Write-Host -ForegroundColor Red "[-] Exiting, please provide a valid set op credentials"
 	}
 }
 
