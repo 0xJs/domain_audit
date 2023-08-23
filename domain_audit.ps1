@@ -3937,6 +3937,7 @@ Invoke-ADCheckPre-Windows2000Computers -Domain 'contoso.com' -Server 'dc1.contos
 	Write-Host "[W] Writing list of passwords to $file"
 	
 	Write-Host -ForeGroundColor Yellow "[+] Please manually spray for Pre-Windows 2000 Computers"
+ 	Write-Host "Example command cme smb $Server -u listcomputers.txt -p list_computers_Pre-Windows2000Computers_pass.txt --no-bruteforce --continue-on-success | tee Pre-Windows2000PassSpray.txt"
 	Write-Host "Check for the error message STATUS_NOLOGON_WORKSTATION_TRUST_ACCOUNT"
 	
 	Write-Host " "
