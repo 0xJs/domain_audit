@@ -2558,6 +2558,7 @@ Invoke-ADCheckOutdatedComputers -Domain 'contoso.com' -Server 'dc1.contoso.com' 
 	Write-Host "---Checking if there are end of service Windows 10 operating systems in the AD---"
 	$data = Get-DomainComputer -Credential $Creds -Server $Server -Domain $Domain | Where-Object {$_.operatingsystem -match 'Windows 10'} | Where-Object {
 		$_.operatingsystemversion -match 19043 -or `
+  		$_.operatingsystemversion -match 19042 -or `
 		$_.operatingsystemversion -match 19041 -or `
 		$_.operatingsystemversion -match 18363 -or `
 		$_.operatingsystemversion -match 18362 -or `
