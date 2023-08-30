@@ -3714,7 +3714,7 @@ Invoke-ADCheckPreWindows2000Group -Server 'dc1.contoso.com' -User '0xjs' -Passwo
 			
 			if ($data | Where-Object -Property MemberName -Match "Authenticated Users"){ 
 				$file = "$findings_path\Pre-Windows_2000_Compatible_Access_Authenticated_users.txt"
-				Write-Host -ForegroundColor Red "[+] Authenticated users group is member of Pre-Windows 2000 Compatible Access has memberships"
+				Write-Host -ForegroundColor Red "[+] Authenticated users group is member of Pre-Windows 2000 Compatible Access"
 				Write-Host "[W] Writing to $file"
 				$data | Out-File $file	
 			}
