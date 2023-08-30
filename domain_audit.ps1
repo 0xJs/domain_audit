@@ -1733,7 +1733,7 @@ Invoke-ADCheckLAPS -Domain 'contoso.com' -Server 'dc1.contoso.com' -User '0xjs' 
 						$count = $data2 | Measure-Object | Select-Object -expand Count
 						Write-Host -ForegroundColor DarkGreen "[+] The GPO is linked to $count OU's"
 						Write-Host -ForegroundColor Yellow "[-] Please manually check which OU's etc."
-						$file = "$findings_path\laps_gpo_ou.txt"
+						$file = "$checks_path\laps_gpo_ou.txt"
 						Write-Host "[W] Writing to $file"
 						$data2 | Out-File -Append $file
 					}
@@ -1841,7 +1841,7 @@ Invoke-ADCheckLAPS -Domain 'contoso.com' -Server 'dc1.contoso.com' -User '0xjs' 
 			# Check if there are systems where LAPS isn't enabled on
 			Write-Host "---Checking Windows computerobjects where LAPS isn't enabled---"
 			$data = Get-DomainComputer -Domain $Domain -Server $Server -Credential $Creds | Where-Object {$_."ms-Mcs-AdmPwdExpirationTime" -Like $null -and $_.Operatingsystem -match "Windows" } | Select-Object samaccountname, lastlogon, whenchanged | Sort-Object whenchanged -Descending
-			$file = "$data_path\laps_computers_disabled.txt"
+			$file = "$findings_path\laps_computers_disabled.txt"
 			if ($data){ 
 				$count = $data | Measure-Object | Select-Object -expand Count
 				Write-Host -ForegroundColor Red "[-] There are $count Windows systems where LAPS isn't enabled"
@@ -1867,7 +1867,7 @@ Invoke-ADCheckLAPS -Domain 'contoso.com' -Server 'dc1.contoso.com' -User '0xjs' 
 			$data = Get-DomainComputer -Domain $Domain -Server $Server -Credential $Creds | Where-Object -Property ms-mcs-admpwd | Select-Object samaccountname, ms-mcs-admpwd
 			if ($data){ 
 					Write-Host -ForegroundColor Red "[-] The current user could read LAPS passwords"
-					$file = "$findings_path\laps_passwords.txt"
+					$file = "$findings_path\laps_passwords_readable.txt"
 					Write-Host "[W] Writing to $file"
 					$data | Out-File $file
 				}
