@@ -1158,7 +1158,7 @@ Start all SQL checks but skip prompt asking if the process is running as the dom
 					$count = $data | Measure-Object | Select-Object -expand Count
 					Write-Host -ForegroundColor Red "[-] The current user is sysadmin to $count MSSQL instances"
 					Write-Host "[W] Writing to $file"
-					$data | Out-File $file
+					$data2 | Out-File $file
 				}
 				else {
 					Write-Host -ForegroundColor DarkGreen "[+] The current user is not sysdmin to any SQL instances"
