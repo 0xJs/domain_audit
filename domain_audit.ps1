@@ -174,7 +174,7 @@ Start ADChecks with all modules
 
 	if ($CredentialStatus -eq $false) {
 		Write-Host -ForegroundColor Red "[-] Exiting, please provide a valid set op credentials"
-		break
+		return
 	}
  
 	if ($User -ne $Creds.Username) {
