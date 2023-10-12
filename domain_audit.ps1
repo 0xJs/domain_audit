@@ -173,7 +173,7 @@ Start ADChecks with all modules
 	Test-ADAuthentication -Domain $Domain -Server $Server -User $User -Password $Password | Out-Null
 
 	if ($CredentialStatus -eq $false) {
-		Write-Host -ForegroundColor Red "[-] Exiting, please provide a valid set op credentials"
+		Write-Host -ForegroundColor Red "[-] Exiting, please provide a valid set of credentials"
 		return
 	}
  
