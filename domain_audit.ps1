@@ -30,6 +30,10 @@ if (-not(Test-Path -Path $PowerView_Path)) {
 }
 else {
 	Import-Module -Force -Name $PowerView_Path -WarningAction silentlycontinue
+	if (-not(Get-Command Get-Domainuser -Erroraction silentlycontinue)) {
+		Write-Host -ForegroundColor Red "Powerview didn't import correctly"
+		break
+	}	
 }
 
 if (-not(Test-Path -Path $BloodHound_Path)) {
@@ -39,6 +43,9 @@ if (-not(Test-Path -Path $BloodHound_Path)) {
 }
 else {
 	Import-Module -Force -Name $BloodHound_Path -WarningAction silentlycontinue
+	if (-not(Get-Command Invoke-BloodHound -Erroraction silentlycontinue)) {
+		Write-Host -ForegroundColor Red "Bloodhound didn't import correctly"
+	}
 }
 
 if (-not(Test-Path -Path $GpRegisteryPolicy_Path)) {
@@ -48,6 +55,9 @@ if (-not(Test-Path -Path $GpRegisteryPolicy_Path)) {
 }
 else {
 	Import-Module -Force -Name $GpRegisteryPolicy_Path -WarningAction silentlycontinue
+	if (-not(Get-Command Parse-PolFile -Erroraction silentlycontinue)) {
+		Write-Host -ForegroundColor Red "GPRegistryPolicy didn't import correctly"
+	}
 }
 
 if (-not(Test-Path -Path $PowerMad_Path)) {
@@ -57,6 +67,9 @@ if (-not(Test-Path -Path $PowerMad_Path)) {
 }
 else {
 	Import-Module -Force -Name $PowerMad_Path -WarningAction silentlycontinue
+	if (-not(Get-Command Get-ADIDNSPermission -Erroraction silentlycontinue)) {
+		Write-Host -ForegroundColor Red "PowerMad didn't import correctly"
+	}
 }
 
 if (-not(Test-Path -Path $Portscan_Path)) {
@@ -66,6 +79,9 @@ if (-not(Test-Path -Path $Portscan_Path)) {
 }
 else {
 	Import-Module -Force -Name $Portscan_Path -WarningAction silentlycontinue
+	if (-not(Get-Command Invoke-Portscan -Erroraction silentlycontinue)) {
+		Write-Host -ForegroundColor Red "PowerMad didn't import correctly"
+	}
 }
 
 if (-not(Test-Path -Path $Impacket_Path\examples\GetUserSPNs.py)) {
