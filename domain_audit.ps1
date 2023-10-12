@@ -2541,7 +2541,7 @@ Invoke-ADCheckOutdatedComputers -Domain 'contoso.com' -Server 'dc1.contoso.com' 
 	
 	# Checking for EOL operating systems in the AD
 	Write-Host "---Checking if there are EOL operating systems in the AD---"
-	$data = Get-DomainComputer  -Credential $Creds -Server $Server -Domain $Domain | Where-Object {$_.operatingsystem -match 'Windows 7' -or $_.operatingsystem -match 'Windows 8' -or $_.operatingsystem -match 'Windows Server 2008' -or $_.operatingsystem -match 'Windows Server 2003' -or $_.operatingsystem -match 'XP'} | Select-Object samaccountname, operatingsystem, lastlogon | Sort-Object -Property lastlogon -Descending 
+	$data = Get-DomainComputer  -Credential $Creds -Server $Server -Domain $Domain | Where-Object {$_.operatingsystem -match 'Windows 7' -or $_.operatingsystem -match 'Windows 8' -or $_.operatingsystem -match 'Windows Server 2008' -or $_.operatingsystem -match 'Windows Server 2003' -or $_.operatingsystem -match 'XP' -or $_.operatingsystem -match 'Windows Server 2012'} | Select-Object samaccountname, operatingsystem, lastlogon | Sort-Object -Property lastlogon -Descending 
 	$file = "$findings_path\computers_OS_EOL.txt"
 	if ($data){ 
 			$count = $data | Measure-Object | Select-Object -expand Count
