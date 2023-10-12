@@ -30,7 +30,7 @@ $script:LdapRelayScan_Path = "$PSScriptRoot\import\LdapRelayScan\LdapRelayScan.p
     - Enter `*` into "Value name" and enter `RequireMutualAuthentication=0,RequireIntegrity=0,RequirePrivacy=0` in value.
     - Enter `\\*\NETLOGON` into "Value name" and enter `RequireMutualAuthentication=0,RequireIntegrity=0,RequirePrivacy=0` in value.
     - Enter `\\*\SYSVOL` into "Value name" and enter `RequireMutualAuthentication=0,RequireIntegrity=0,RequirePrivacy=0` in value.
-- If it still gives problems add the following:
+- Or set the reg keys:
 ```
 reg add HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\NetworkProvider\HardenedPaths /v "\\*\SYSVOL" /d "RequireMutualAuthentication=0" /t REG_SZ /f
 reg add HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\NetworkProvider\HardenedPaths /v "\\*\NETLOGON" /d "RequireMutualAuthentication=0" /t REG_SZ /f
