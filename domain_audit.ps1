@@ -107,6 +107,21 @@ if (-not(Test-Path -Path $CME_Path)) {
 	Write-Host -ForegroundColor Red "Won't be able to do any of the SMB or share checks"
 }
 
+# Check for sysvol and netlogon keys hardened unc paths
+$HardenedUncRegKeys = Get-ItemProperty -Path Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\NetworkProvider\HardenedPaths
+
+if (-not($HardenedUncRegKeys -match "\\\\\*\\NETLOGON")){
+	Write-Host -ForegroundColor Red "Hardened UNC Path NetLogon not allowed, run the following command:"
+	Write-Host -ForegroundColor Red 'reg add HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\NetworkProvider\HardenedPaths /v "\\*\NETLOGON" /d "RequireMutualAuthentication=0" /t REG_SZ /f'
+	Write-Host " "
+}
+
+if (-not($HardenedUncRegKeys -match "\\\\\*\\SYSVOL")){
+	Write-Host -ForegroundColor Red "Hardened UNC Path NetLogon not allowed, run the following command:"
+	Write-Host -ForegroundColor Red 'reg add HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\NetworkProvider\HardenedPaths /v "\\*\SYSVOL" /d "RequireMutualAuthentication=0" /t REG_SZ /f'
+	Write-Host " "
+}
+
 Function Invoke-ADCheckAll {
 <#
 .SYNOPSIS
