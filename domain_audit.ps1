@@ -3550,7 +3550,8 @@ Invoke-ADCheckCS -Domain 'contoso.com' -Server 'dc1.contoso.com' -User '0xjs' -P
 	Write-Host "---Checking if Active Directory Certificate Services is used within the domain---"
 	
 	$file = "$checks_path\ADCS.txt"
-	$data = Get-DomainGroup -Domain $Domain -Server $Server -Credential $Creds | Where-Object {$_.samaccountname -EQ "Cert Publishers"} | Select-Object samaccountname 
+	$data = Get-DomainGroup -Domain $Domain -Server $Server -Credential $Creds "Cert Publishers" | Get-DomainGroupMember -Domain $Domain -Server $Server -Credential $Creds -erroraction silentlycontinue | Get-DomainComputer -Domain $Domain -Server $Server -Credential $Creds -erroraction silentlycontinue | Select-Object samaccountname
+ 	$data2 = 
 	if ($data){
 		$count = $data | Measure-Object | Select-Object -expand Count
 		Write-Host -ForeGroundColor Yellow "[+] ADCS installed on $count machines"
