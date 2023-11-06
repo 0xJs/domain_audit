@@ -4041,7 +4041,7 @@ Invoke-ADCheckFineGrainedPasswordPolicy -Domain 'contoso.com' -Server 'dc1.conto
 	}
 	
 	Write-Host "---Checking Fine-grained password policy--"
-	$data = Get-DomainUser -Server $Server -Domain $Domain -Credential $Creds -Properties * | Where-Object -Property msds-psoapplied
+	$data = Get-DomainUser -Server $Server -Domain $Domain -Credential $Creds -Properties samaccountname, msDS-ResultantPSO | Where-Object -Property msDS-ResultantPSO
 	$file = "$data_path\users_finegrainedpasswordpolicy.txt"
 	if ($data){ 
 		$count = $data | Measure-Object | Select-Object -expand Count
@@ -4049,7 +4049,7 @@ Invoke-ADCheckFineGrainedPasswordPolicy -Domain 'contoso.com' -Server 'dc1.conto
 		Write-Host "[W] Writing to $file"
 		$data | Select-Object samaccountname,msds-psoapplied | Out-File $file
 		
-		$data2 = Get-DomainUser -Server $Server -Domain $Domain -Credential $Creds -Properties * | Where-Object -Property msds-psoapplied -EQ $null | Select-Object samaccountname
+		$data2 = Get-DomainUser -Server $Server -Domain $Domain -Credential $Creds -Properties samaccountname, msDS-ResultantPSO | Where-Object -Property msDS-ResultantPSO -EQ $null | Select-Object samaccountname
 		$file = "$data_path\users_NOfinegrainedpasswordpolicy.txt"
 		Write-Host -ForegroundColor Red "[-] If you don't want to lockout users, spray with this list!"
 		Write-Host "[W] Writing list of usernames without a finegrained password policy to $file"
