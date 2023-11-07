@@ -3948,13 +3948,14 @@ Invoke-ADCheckPre-Windows2000Computers -Domain 'contoso.com' -Server 'dc1.contos
 	}
 	
 	Write-Host "---Checking Pre-Windows 2000 computers--"
-	$data = Get-DomainComputer -Credential $Creds -Domain $Domain -DomainController $Server 
+	$data = Get-DomainComputer -Credential $Creds -Domain $Domain -DomainController $Server  | Select-Object samaccountname
 	$file = "$checks_path\list_computers.txt"
 	$data = $data.samaccountname
 	$data | Out-File $file
 	Write-Host "[W] Writing list of computers to $file"
 	
 	$data = $data -replace '\$', ''
+	$data = $data.ToLower()
 	
 	$file = "$checks_path\list_computers_Pre-Windows2000Computers_pass.txt"
 	ForEach ($line in $data) {
