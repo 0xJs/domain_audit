@@ -21,6 +21,7 @@ $script:Data_Path = ''
 $script:Checks_Path = ''
 $script:OutputDirectoryCreated = ''
 $script:Creds = ''
+$script:DefaultGroupNamesCreated = ''
 
 # Check and Import dependancies
 if (-not(Test-Path -Path $PowerView_Path)) {
@@ -585,6 +586,107 @@ Test-ADAuthentication -Domain 'contoso.com' -Server 'dc1.contoso.com' -User '0xj
     }
 }
 
+Function Invoke-ADGetGroupNames {
+<#
+.SYNOPSIS
+Author: Jony Schats - 0xjs
+Required Dependencies: None
+Optional Dependencies: None
+
+.DESCRIPTION
+Calculate the default SIDS used for queries since group names are different across languages. 
+
+.PARAMETER Domain
+Specifies the domain to use for the query and creating outputdirectory.
+
+.PARAMETER Server
+Specifies an Active Directory server IP to bind to, e.g. 10.0.0.1
+
+.PARAMETER User
+Specifies the username to use for the query.
+
+.PARAMETER Password
+Specifies the Password in combination with the username to use for the query.
+
+.PARAMETER OutputDirectory
+Specifies the path to use for the output directory, defaults to the current directory.
+
+.EXAMPLE
+Invoke-ADCheckPrivilegedObjects -Domain 'contoso.com' -Server 'dc1.contoso.com' -User '0xjs' -Password 'Password01!'
+#>
+
+	#Parameters
+	[CmdletBinding()]
+	Param(
+		[Parameter(Mandatory=$true,HelpMessage="Enter a domain name here, e.g. contoso.com")]
+		[ValidateNotNullOrEmpty()]
+		[string]$Domain,
+		
+		[Parameter(Mandatory=$true,HelpMessage="Enter a IP of a domain controller here, e.g. 10.0.0.1")]
+		[ValidateNotNullOrEmpty()]
+		[string]$Server,
+		
+		[Parameter(Mandatory=$true,HelpMessage="Enter the username to connect with")]
+		[ValidateNotNullOrEmpty()]
+		[string]$User,
+		
+		[Parameter(Mandatory=$true,HelpMessage="Enter the password of the user")]
+		[ValidateNotNullOrEmpty()]
+		[string]$Password,
+		
+		[Parameter(Mandatory=$false)]
+		[ValidateNotNullOrEmpty()]
+		[string]$OutputDirectory
+	)
+
+	if ($OutputDirectoryCreated -ne $true) {
+		if ($PSBoundParameters['OutputDirectory']) {
+			New-OutputDirectory -Domain $Domain -OutputDirectory $OutputDirectory
+			}
+			else {
+				New-OutputDirectory -Domain $Domain
+		}
+	}
+	
+	if ($User -ne $Creds.Username) {
+		Create-CredentialObject -User $User -Password $Password -Domain $Domain
+	}
+
+	# Get domain sid and create domain admin and enterprise admin sid
+	# https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-dtyp/81d92bba-d22b-4a8c-908a-554ab29148ab
+	$script:DomainSid = Get-DomainSID -Domain $Domain -Server $Server -Credential $Creds
+	
+	$script:DominAdminSid = $DomainSid + '-512'
+	$script:DomainAdminGroupName = (Get-DomainGroup -Domain $Domain -Server $Server -Credential $Creds $DominAdminSid).samaccountname
+	
+	$script:EnterpriseAdminSid = $DomainSid + '-519'
+	$script:EnterpriseAdminGroupName = (Get-DomainGroup -Domain $Domain -Server $Server -Credential $Creds $EnterpriseAdminSid).samaccountname
+	
+	$script:CertPublisherSid = $DomainSid + '-517'
+	$script:CertPublisherGroupName = (Get-DomainGroup -Domain $Domain -Server $Server -Credential $Creds $CertPublisherSid).samaccountname
+	
+	$script:SchemaAdminsSid = $DomainSid + '-518'
+	$script:SchemaAdminsGroupName = (Get-DomainGroup -Domain $Domain -Server $Server -Credential $Creds $SchemaAdminsSid).samaccountname
+	
+	$script:ProtectedUsersSid = $DomainSid + '-525'
+	$script:ProtectedUsersGroupName = (Get-DomainGroup -Domain $Domain -Server $Server -Credential $Creds $ProtectedUsersSid).samaccountname
+	
+	$script:GroupPolicyCreatorOwnersSid = $DomainSid + '-520'
+	$script:GroupPolicyCreatorOwnersGroupName = (Get-DomainGroup -Domain $Domain -Server $Server -Credential $Creds $GroupPolicyCreatorOwnersSid).samaccountname
+	
+	$script:KeyAdminsSid = $DomainSid + '-526'
+	$script:KeyAdminsGroupName = (Get-DomainGroup -Domain $Domain -Server $Server -Credential $Creds $KeyAdminsSid).samaccountname
+	
+	$script:AccountOperatorsSid = "S-1-5-32-548"
+	$script:BackopOperatorSid = "S-1-5-32-551"
+	$script:PrintOperatorSid = "S-1-5-32-550"
+	$script:RemoteManagementUsersSid = "S-1-5-32-580"
+	$script:HyperVAdminsSid = "S-1-5-32-578"
+	$script:AdministratorsSid = "S-1-5-32-544"
+	
+	$script:DefaultGroupNamesCreated = $true
+}
+
 Function Invoke-WriteExplanation {
 <#
 .SYNOPSIS
@@ -694,6 +796,10 @@ Execute all basic enumeration steps but skip BloudHound
 		Create-CredentialObject -User $User -Password $Password -Domain $Domain
 	}
 	
+	if ($DefaultGroupNamesCreated -ne $true) {
+		Invoke-ADGetGroupNames -User $User -Password $Password -Domain $Domain -Server $Server
+	}
+	
 	Write-Host "---------- GATHERING DATA ----------"
 	Write-Host "[+] Gathering data of all Users, Groups, Computerobject, GPO's, OU's, DC's and saving it to csv"
 	
@@ -742,9 +848,9 @@ Execute all basic enumeration steps but skip BloudHound
 	
 	$file = "$Data_Path\list_administrators.txt"
 	Write-Host "[W] Saving a list of all administrators to $file"
-	$data = Get-DomainGroupMember -Domain $Domain -Server $Server -Credential $Creds "Domain Admins" -Recurse | Get-DomainUser -Domain $Domain -Server $Server -Credential $Creds | Select-Object samaccountname | Format-Table -Autosize 
-	$data += Get-DomainGroupMember -Domain $Domain -Server $Server -Credential $Creds "Enterprise Admins" -Recurse | Get-DomainUser -Domain $Domain -Server $Server -Credential $Creds | Select-Object samaccountname | Format-Table -Autosize 
-	$data += Get-DomainGroupMember -Domain $Domain -Server $Server -Credential $Creds "Administrators"  -Recurse | Get-DomainUser -Domain $Domain -Server $Server -Credential $Creds | Select-Object samaccountname | Format-Table -Autosize 
+	$data = Get-DomainGroupMember -Domain $Domain -Server $Server -Credential $Creds $DomainAdminGroupName -Recurse | Get-DomainUser -Domain $Domain -Server $Server -Credential $Creds | Select-Object samaccountname | Format-Table -Autosize 
+	$data += Get-DomainGroupMember -Domain $Domain -Server $Server -Credential $Creds $EnterpriseAdminGroupName -Recurse | Get-DomainUser -Domain $Domain -Server $Server -Credential $Creds | Select-Object samaccountname | Format-Table -Autosize 
+	$data += Get-DomainGroupMember -Domain $Domain -Server $Server -Credential $Creds $AdministratorsSid -Recurse | Get-DomainUser -Domain $Domain -Server $Server -Credential $Creds | Select-Object samaccountname | Format-Table -Autosize 
 	$data | Out-File $file
 	$data = Get-Content $file
 	$data = $data | Sort-Object -Unique 
@@ -2039,7 +2145,7 @@ Required Dependencies: None
 Optional Dependencies: None
 
 .DESCRIPTION
-Check is there are any kerberoastable domain admins, then checks for all users and kerberoasts every user. Then it checks for AS-REP roasting.
+Check is there are any kerberoastable privileged users, then checks for all users and kerberoasts every user. Then it checks for AS-REP roasting.
 
 .PARAMETER Domain
 Specifies the domain to use for the query and creating outputdirectory.
@@ -2472,7 +2578,7 @@ Invoke-ADCheckUserAttributes -Domain 'contoso.com' -Server 'dc1.contoso.com' -Us
 		}
 	Write-Host " "
 	
-	# Check for Domain admins with old password
+	# Check for privileged users with old password
 	Write-Host "---Checking if administrator accounts (privileged users) - that aren't disabled - have a password older then 365 days---"
 	$file = "$findings_path\oldpassword_privilegedusers.txt"
 	$data = Get-DomainGroup -AdminCount -Domain $Domain -Server $Server -Credential $Creds | Get-DomainGroupMember -Domain $Domain -Server $Server -Credential $Creds -Recurse -ErrorAction silentlycontinue -WarningAction silentlycontinue | Get-DomainUser -Domain $Domain -Server $Server -Credential $Creds | Where-Object {$_.pwdlastset -lt (Get-Date).AddDays(-365) -and $_.useraccountcontrol -notmatch "ACCOUNTDISABLE"} | Select-Object samaccountname, pwdlastset | Sort-object samaccountname -Unique 
@@ -2786,11 +2892,15 @@ Invoke-ADCheckPrivilegedObjects -Domain 'contoso.com' -Server 'dc1.contoso.com' 
 	
 	if ($User -ne $Creds.Username) {
 		Create-CredentialObject -User $User -Password $Password -Domain $Domain
-	}	
+	}
+	
+	if ($DefaultGroupNamesCreated -ne $true) {
+		Invoke-ADGetGroupNames -User $User -Password $Password -Domain $Domain -Server $Server
+	}
 
 	# Check if all privileged users are part of the protected users group
 	Write-Host "---Checking if members of privileged groups are part of the protected users group---"
-	$data = Get-DomainGroup -AdminCount -Domain $Domain -Server $Server -Credential $Creds | Get-DomainGroupMember -Domain $Domain -Server $Server -Credential $Creds -Recurse -ErrorAction silentlycontinue -WarningAction silentlycontinue | Get-DomainUser -Domain $Domain -Server $Server -Credential $Creds | Where-Object {!($_.memberof -match "Protected Users")} | Select-Object samaccountname | Sort-object samaccountname -Unique
+	$data = Get-DomainGroup -AdminCount -Domain $Domain -Server $Server -Credential $Creds | Get-DomainGroupMember -Domain $Domain -Server $Server -Credential $Creds -Recurse -ErrorAction silentlycontinue -WarningAction silentlycontinue | Get-DomainUser -Domain $Domain -Server $Server -Credential $Creds | Where-Object {!($_.memberof -match $ProtectedUsersGroupName)} | Select-Object samaccountname | Sort-object samaccountname -Unique
 	$file = "$findings_path\administrators_notin_protectedusersgroup.txt"
 	if ($data){ 
 			$count = $data | Measure-Object | Select-Object -expand Count
@@ -2805,7 +2915,7 @@ Invoke-ADCheckPrivilegedObjects -Domain 'contoso.com' -Server 'dc1.contoso.com' 
 	
 	# Check if all privileged users have the flag "this account is sensitive and cannot be delegated"
 	Write-Host "---Checking if members of privileged groups have the flag 'this account is sensitive and cannot be delegated'---"
-	$data = Get-DomainGroup -AdminCount -Domain $Domain -Server $Server -Credential $Creds | Get-DomainGroupMember -Domain $Domain -Server $Server -Credential $Creds -Recurse -ErrorAction silentlycontinue -WarningAction silentlycontinue | Get-DomainUser -Domain $Domain -Server $Server -Credential $Creds | Where-Object {!($_.memberof -match "Protected Users")} | Where-Object {$_.useraccountcontrol -notmatch "NOT_DELEGATED"} | Select-Object samaccountname | Sort-object samaccountname -Unique
+	$data = Get-DomainGroup -AdminCount -Domain $Domain -Server $Server -Credential $Creds | Get-DomainGroupMember -Domain $Domain -Server $Server -Credential $Creds -Recurse -ErrorAction silentlycontinue -WarningAction silentlycontinue | Get-DomainUser -Domain $Domain -Server $Server -Credential $Creds | Where-Object {!($_.memberof -match $ProtectedUsersGroupName)} | Where-Object {$_.useraccountcontrol -notmatch "NOT_DELEGATED"} | Select-Object samaccountname | Sort-object samaccountname -Unique
 	$file = "$findings_path\administrators_delegation_flag.txt"
 	if ($data){ 
 			$count = $data | Measure-Object | Select-Object -expand Count
@@ -2820,118 +2930,118 @@ Invoke-ADCheckPrivilegedObjects -Domain 'contoso.com' -Server 'dc1.contoso.com' 
 	
 	# Check if there are members part of some privileged groups
 	Write-Host "---Checking if there are members in high privileged groups---"
-	$data = Get-DomainGroup -Domain $Domain -Server $Server -Credential $Creds "Account Operators" | Get-DomainGroupMember -Domain $Domain -Server $Server -Credential $Creds -Recurse -ErrorAction silentlycontinue -WarningAction silentlycontinue | Get-DomainUser -Domain $Domain -Server $Server -Credential $Creds | Where-Object {!($_.memberof -match "Domain Admins" -or $_.memberof -match "Enterprise Admins")} | Select-Object samaccountname
+	$data = Get-DomainGroup -Domain $Domain -Server $Server -Credential $Creds $AccountOperatorsSid | Get-DomainGroupMember -Domain $Domain -Server $Server -Credential $Creds -Recurse -ErrorAction silentlycontinue -WarningAction silentlycontinue | Get-DomainUser -Domain $Domain -Server $Server -Credential $Creds | Where-Object {!($_.memberof -match $DomainAdminGroupName -or $_.memberof -match $EnterpriseAdminGroupName)} | Select-Object samaccountname
 	$file = "$checks_path\users_highprivilegegroups_AccountOperators.txt"
 	if ($data){ 
-			$count = $data | Measure-Object | Select-Object -expand Count
-			Write-Host -ForegroundColor Red "[-] There are $count users in the Account Operators group that aren't Domain- or Enterprise Administrators"
-			Write-Host "[W] Writing to $file"
-			$data | Out-File $file
-		}
-		else {
-			Write-Host -ForegroundColor DarkGreen "[+] There are no users in the Account Operators group"
-		}
+		$count = $data | Measure-Object | Select-Object -expand Count
+		Write-Host -ForegroundColor Red "[-] There are $count users in the Account Operators group that aren't Domain- or Enterprise Administrators"
+		Write-Host "[W] Writing to $file"
+		$data | Out-File $file
+	}
+	else {
+		Write-Host -ForegroundColor DarkGreen "[+] There are no users in the Account Operators group"
+	}
 	
  	$file = "$checks_path\users_highprivilegegroups_BackupOperators.txt"
-	$data = Get-DomainGroup -Domain $Domain -Server $Server -Credential $Creds "Backup Operators" | Get-DomainGroupMember -Domain $Domain -Server $Server -Credential $Creds -Recurse -ErrorAction silentlycontinue -WarningAction silentlycontinue | Get-DomainUser -Domain $Domain -Server $Server -Credential $Creds | Where-Object {!($_.memberof -match "Domain Admins" -or $_.memberof -match "Enterprise Admins")} | Select-Object samaccountname
+	$data = Get-DomainGroup -Domain $Domain -Server $Server -Credential $Creds $BackopOperatorSid | Get-DomainGroupMember -Domain $Domain -Server $Server -Credential $Creds -Recurse -ErrorAction silentlycontinue -WarningAction silentlycontinue | Get-DomainUser -Domain $Domain -Server $Server -Credential $Creds | Where-Object {!($_.memberof -match $DomainAdminGroupName -or $_.memberof -match $EnterpriseAdminGroupName)} | Select-Object samaccountname
 	if ($data){ 
-			$count = $data | Measure-Object | Select-Object -expand Count
-			Write-Host -ForegroundColor Red "[-] There are $count users in the Backup Operators group that aren't Domain- or Enterprise Administrators"
-			Write-Host "[W] Writing to $file"
-			$data | Out-File $file
-		}
-		else {
-			Write-Host -ForegroundColor DarkGreen "[+] There are no users in the Backup Operators group"
-		}
+		$count = $data | Measure-Object | Select-Object -expand Count
+		Write-Host -ForegroundColor Red "[-] There are $count users in the Backup Operators group that aren't Domain- or Enterprise Administrators"
+		Write-Host "[W] Writing to $file"
+		$data | Out-File $file
+	}
+	else {
+		Write-Host -ForegroundColor DarkGreen "[+] There are no users in the Backup Operators group"
+	}
 
  	$file = "$checks_path\users_highprivilegegroups_PrintOperators.txt"
-	$data = Get-DomainGroup -Domain $Domain -Server $Server -Credential $Creds "Print Operators" | Get-DomainGroupMember -Domain $Domain -Server $Server -Credential $Creds -Recurse -ErrorAction silentlycontinue -WarningAction silentlycontinue | Get-DomainUser -Domain $Domain -Server $Server -Credential $Creds | Where-Object {!($_.memberof -match "Domain Admins" -or $_.memberof -match "Enterprise Admins")} | Select-Object samaccountname
+	$data = Get-DomainGroup -Domain $Domain -Server $Server -Credential $Creds $PrintOperatorSid | Get-DomainGroupMember -Domain $Domain -Server $Server -Credential $Creds -Recurse -ErrorAction silentlycontinue -WarningAction silentlycontinue | Get-DomainUser -Domain $Domain -Server $Server -Credential $Creds | Where-Object {!($_.memberof -match $DomainAdminGroupName -or $_.memberof -match $EnterpriseAdminGroupName)} | Select-Object samaccountname
 	if ($data){ 
-			$count = $data | Measure-Object | Select-Object -expand Count
-			Write-Host -ForegroundColor Red "[-] There are $count users in the Print Operators group that aren't Domain- or Enterprise Administrators"
-			Write-Host "[W] Writing to $file"
-			$data | Out-File $file
-		}
-		else {
-			Write-Host -ForegroundColor DarkGreen "[+] There are no users in the Print Operators group"
-		}
+		$count = $data | Measure-Object | Select-Object -expand Count
+		Write-Host -ForegroundColor Red "[-] There are $count users in the Print Operators group that aren't Domain- or Enterprise Administrators"
+		Write-Host "[W] Writing to $file"
+		$data | Out-File $file
+	}
+	else {
+		Write-Host -ForegroundColor DarkGreen "[+] There are no users in the Print Operators group"
+	}
 
   	$file = "$checks_path\users_highprivilegegroups_DNSAdmins.txt"
-	$data = Get-DomainGroup -Domain $Domain -Server $Server -Credential $Creds "DNS Admins" | Get-DomainGroupMember -Domain $Domain -Server $Server -Credential $Creds -Recurse -ErrorAction silentlycontinue -WarningAction silentlycontinue | Get-DomainUser -Domain $Domain -Server $Server -Credential $Creds | Where-Object {!($_.memberof -match "Domain Admins" -or $_.memberof -match "Enterprise Admins")} | Select-Object samaccountname
+	$data = Get-DomainGroup -Domain $Domain -Server $Server -Credential $Creds "DNS Admins" | Get-DomainGroupMember -Domain $Domain -Server $Server -Credential $Creds -Recurse -ErrorAction silentlycontinue -WarningAction silentlycontinue | Get-DomainUser -Domain $Domain -Server $Server -Credential $Creds | Where-Object {!($_.memberof -match $DomainAdminGroupName -or $_.memberof -match $EnterpriseAdminGroupName)} | Select-Object samaccountname
 	if ($data){
-			$count = $data | Measure-Object | Select-Object -expand Count
-			Write-Host -ForegroundColor Red "[-] There are $count users in the DNS Admins group that aren't Domain- or Enterprise Administrators"
-			Write-Host "[W] Writing to $file"
-			$data | Out-File $file
-		}
-		else {
-			Write-Host -ForegroundColor DarkGreen "[+] There are no users in the DNS Admins group"
-		}
+		$count = $data | Measure-Object | Select-Object -expand Count
+		Write-Host -ForegroundColor Red "[-] There are $count users in the DNS Admins group that aren't Domain- or Enterprise Administrators"
+		Write-Host "[W] Writing to $file"
+		$data | Out-File $file
+	}
+	else {
+		Write-Host -ForegroundColor DarkGreen "[+] There are no users in the DNS Admins group"
+	}
 
  	$file = "$checks_path\users_highprivilegegroups_SchemaAdmins.txt"
-	$data = Get-DomainGroup -Domain $Domain -Server $Server -Credential $Creds "Schema Admins" | Get-DomainGroupMember -Domain $Domain -Server $Server -Credential $Creds -Recurse -ErrorAction silentlycontinue -WarningAction silentlycontinue | Get-DomainUser -Domain $Domain -Server $Server -Credential $Creds | Where-Object {!($_.memberof -match "Domain Admins" -or $_.memberof -match "Enterprise Admins")} | Select-Object samaccountname
+	$data = Get-DomainGroup -Domain $Domain -Server $Server -Credential $Creds $SchemaAdminsGroupName | Get-DomainGroupMember -Domain $Domain -Server $Server -Credential $Creds -Recurse -ErrorAction silentlycontinue -WarningAction silentlycontinue | Get-DomainUser -Domain $Domain -Server $Server -Credential $Creds | Where-Object {!($_.memberof -match $DomainAdminGroupName -or $_.memberof -match $EnterpriseAdminGroupName)} | Select-Object samaccountname
 	if ($data){ 
-			$count = $data | Measure-Object | Select-Object -expand Count
-			Write-Host -ForegroundColor Red "[-] There are $count users in the Schema Admins group that aren't Domain- or Enterprise Administrators"
-			Write-Host "[W] Writing to $file"
-			$data | Out-File $file
-		}
-		else {
-			Write-Host -ForegroundColor DarkGreen "[+] There are no users in the Schema Admins group"
-		}
+		$count = $data | Measure-Object | Select-Object -expand Count
+		Write-Host -ForegroundColor Red "[-] There are $count users in the Schema Admins group that aren't Domain- or Enterprise Administrators"
+		Write-Host "[W] Writing to $file"
+		$data | Out-File $file
+	}
+	else {
+		Write-Host -ForegroundColor DarkGreen "[+] There are no users in the Schema Admins group"
+	}
 
  	$file = "$checks_path\users_highprivilegegroups_RemoteManagementUsers.txt"
-	$data = Get-DomainGroup -Domain $Domain -Server $Server -Credential $Creds "Remote Management Users" | Get-DomainGroupMember -Domain $Domain -Server $Server -Credential $Creds -Recurse -ErrorAction silentlycontinue -WarningAction silentlycontinue | Get-DomainUser -Domain $Domain -Server $Server -Credential $Creds | Where-Object {!($_.memberof -match "Domain Admins" -or $_.memberof -match "Enterprise Admins")} | Select-Object samaccountname
+	$data = Get-DomainGroup -Domain $Domain -Server $Server -Credential $Creds $RemoteManagementUsersSid  | Get-DomainGroupMember -Domain $Domain -Server $Server -Credential $Creds -Recurse -ErrorAction silentlycontinue -WarningAction silentlycontinue | Get-DomainUser -Domain $Domain -Server $Server -Credential $Creds | Where-Object {!($_.memberof -match $DomainAdminGroupName -or $_.memberof -match $EnterpriseAdminGroupName)} | Select-Object samaccountname
 	if ($data){ 
-			$count = $data | Measure-Object | Select-Object -expand Count
-			Write-Host -ForegroundColor Red "[-] There are $count users in the Remote Management Users group that aren't Domain- or Enterprise Administrators"
-			Write-Host "[W] Writing to $file"
-			$data | Out-File $file
-		}
-		else {
-			Write-Host -ForegroundColor DarkGreen "[+] There are no users in the Remote Management Users group"
-		}
+		$count = $data | Measure-Object | Select-Object -expand Count
+		Write-Host -ForegroundColor Red "[-] There are $count users in the Remote Management Users group that aren't Domain- or Enterprise Administrators"
+		Write-Host "[W] Writing to $file"
+		$data | Out-File $file
+	}
+	else {
+		Write-Host -ForegroundColor DarkGreen "[+] There are no users in the Remote Management Users group"
+	}
 
  	$file = "$checks_path\users_highprivilegegroups_GroupPolicyCreators.txt"
-	$data = Get-DomainGroup -Domain $Domain -Server $Server -Credential $Creds "Group Policy Creators" | Get-DomainGroupMember -Domain $Domain -Server $Server -Credential $Creds -Recurse -ErrorAction silentlycontinue -WarningAction silentlycontinue | Get-DomainUser -Domain $Domain -Server $Server -Credential $Creds | Where-Object {!($_.memberof -match "Domain Admins" -or $_.memberof -match "Enterprise Admins")} | Select-Object samaccountname
+	$data = Get-DomainGroup -Domain $Domain -Server $Server -Credential $Creds $GroupPolicyCreatorOwnersGroupName | Get-DomainGroupMember -Domain $Domain -Server $Server -Credential $Creds -Recurse -ErrorAction silentlycontinue -WarningAction silentlycontinue | Get-DomainUser -Domain $Domain -Server $Server -Credential $Creds | Where-Object {!($_.memberof -match $DomainAdminGroupName -or $_.memberof -match $EnterpriseAdminGroupName)} | Select-Object samaccountname
 	if ($data){ 
-			$count = $data | Measure-Object | Select-Object -expand Count
-			Write-Host -ForegroundColor Red "[-] There are $count users in the Group Policy Creators group that aren't Domain- or Enterprise Administrators"
-			Write-Host "[W] Writing to $file"
-			$data | Out-File $file
-		}
-		else {
-			Write-Host -ForegroundColor DarkGreen "[+] There are no users in the Group Policy Creators group"
-		}
+		$count = $data | Measure-Object | Select-Object -expand Count
+		Write-Host -ForegroundColor Red "[-] There are $count users in the group $GroupPolicyCreatorOwnersGroupName that aren't Domain- or Enterprise Administrators"
+		Write-Host "[W] Writing to $file"
+		$data | Out-File $file
+	}
+	else {
+		Write-Host -ForegroundColor DarkGreen "[+] There are no users in the Group Policy Creators group"
+	}
 
  	$file = "$checks_path\users_highprivilegegroups_HyperVAdministrators.txt"
-	$data = Get-DomainGroup -Domain $Domain -Server $Server -Credential $Creds "Hyper-V Administrators" | Get-DomainGroupMember -Domain $Domain -Server $Server -Credential $Creds -Recurse -ErrorAction silentlycontinue -WarningAction silentlycontinue | Get-DomainUser -Domain $Domain -Server $Server -Credential $Creds | Where-Object {!($_.memberof -match "Domain Admins" -or $_.memberof -match "Enterprise Admins")} | Select-Object samaccountname
+	$data = Get-DomainGroup -Domain $Domain -Server $Server -Credential $Creds $HyperVAdminsSid | Get-DomainGroupMember -Domain $Domain -Server $Server -Credential $Creds -Recurse -ErrorAction silentlycontinue -WarningAction silentlycontinue | Get-DomainUser -Domain $Domain -Server $Server -Credential $Creds | Where-Object {!($_.memberof -match $DomainAdminGroupName -or $_.memberof -match $EnterpriseAdminGroupName)} | Select-Object samaccountname
 	if ($data){ 
-			$count = $data | Measure-Object | Select-Object -expand Count
-			Write-Host -ForegroundColor Red "[-] There are $count users in the Hyper-V Administrators group that aren't Domain- or Enterprise Administrators"
-			Write-Host "[W] Writing to $file"
-			$data | Out-File $file
-		}
-		else {
-			Write-Host -ForegroundColor DarkGreen "[+] There are no users in the Hyper-V Administrators group"
-		}
+		$count = $data | Measure-Object | Select-Object -expand Count
+		Write-Host -ForegroundColor Red "[-] There are $count users in the Hyper-V Administrators group that aren't Domain- or Enterprise Administrators"
+		Write-Host "[W] Writing to $file"
+		$data | Out-File $file
+	}
+	else {
+		Write-Host -ForegroundColor DarkGreen "[+] There are no users in the Hyper-V Administrators group"
+	}
 
  	$file = "$checks_path\users_highprivilegegroups_enterprisekeyadmins.txt"
-	$data = Get-DomainGroup -Domain $Domain -Server $Server -Credential $Creds "Enterprise Key Admins" | Get-DomainGroupMember -Domain $Domain -Server $Server -Credential $Creds -Recurse -ErrorAction silentlycontinue -WarningAction silentlycontinue | Get-DomainUser -Domain $Domain -Server $Server -Credential $Creds | Where-Object {!($_.memberof -match "Domain Admins" -or $_.memberof -match "Enterprise Admins")} | Select-Object samaccountname
+	$data = Get-DomainGroup -Domain $Domain -Server $Server -Credential $Creds $KeyAdminsGroupName | Get-DomainGroupMember -Domain $Domain -Server $Server -Credential $Creds -Recurse -ErrorAction silentlycontinue -WarningAction silentlycontinue | Get-DomainUser -Domain $Domain -Server $Server -Credential $Creds | Where-Object {!($_.memberof -match $DomainAdminGroupName -or $_.memberof -match $EnterpriseAdminGroupName)} | Select-Object samaccountname
 	if ($data){ 
-			$count = $data | Measure-Object | Select-Object -expand Count
-			Write-Host -ForegroundColor Red "[-] There are $count users in the Enterprise Key Admins group that aren't Domain- or Enterprise Administrators"
-			Write-Host "[W] Writing to $file"
-			$data | Out-File $file
-		}
-		else {
-			Write-Host -ForegroundColor DarkGreen "[+] There are no users in the Enterprise Key Admins group"
-		}
+		$count = $data | Measure-Object | Select-Object -expand Count
+		Write-Host -ForegroundColor Red "[-] There are $count users in the Enterprise Key Admins group that aren't Domain- or Enterprise Administrators"
+		Write-Host "[W] Writing to $file"
+		$data | Out-File $file
+	}
+	else {
+		Write-Host -ForegroundColor DarkGreen "[+] There are no users in the Enterprise Key Admins group"
+	}
 	Write-Host " "
 	
 	# Check if there is a computer part of a high privileged group
 	Write-Host "---Checking if there are computerobjects part of high privileged groups---"
-	$data = Get-DomainGroup -Domain $Domain -Server $Server -Credential $Creds -AdminCount | Get-DomainGroupMember -Domain $Domain -Server $Server -Credential $Creds -Recurse -ErrorAction Silentlycontinue -WarningAction Silentlycontinue | Where-Object -Property MemberObjectClass -Match computer | Select-Object MemberName
+	$data = Get-DomainGroup -Domain $Domain -Server $Server -Credential $Creds -AdminCount | Where-Object -Property samaccountname -NotMatch $CertPublisherGroupName | Get-DomainGroupMember -Domain $Domain -Server $Server -Credential $Creds -Recurse -ErrorAction Silentlycontinue -WarningAction Silentlycontinue | Where-Object -Property MemberObjectClass -Match computer | Select-Object MemberName
 	$file = "$findings_path\computers_part_of_highprivilegedgroups.txt"
 	if ($data){ 
 			$count = $data | Measure-Object | Select-Object -expand Count
@@ -3410,6 +3520,10 @@ Invoke-ADCheckExchange -Domain 'contoso.com' -Server 'dc1.contoso.com' -User '0x
 		}
 	}
 	
+	if ($DefaultGroupNamesCreated -ne $true) {
+		Invoke-ADGetGroupNames -User $User -Password $Password -Domain $Domain -Server $Server
+	}
+	
 	Write-Host "---Checking if Exchange is used within the domain---"
 	$file = "$data_path\Exchangegroups.txt"
 	$data = Get-DomainGroup -Domain $Domain -Server $Server -Credential $Creds | Where-Object {$_.samaccountname -EQ "Exchange Trusted Subsystem" -or $_.samaccountname -EQ "Exchange Windows Permissions" -or $_.samaccountname -EQ "Organization management"} | Select-Object samaccountname 
@@ -3447,7 +3561,7 @@ Invoke-ADCheckExchange -Domain 'contoso.com' -Server 'dc1.contoso.com' -User '0x
 			Write-Host " "
 			
 		Write-Host "---Checking for Exchange Windows permissions membership---"	
-		$data = Get-DomainGroupMember -Identity "Exchange Windows Permissions" -Domain $Domain -Server $Server -Credential $Creds -Recurse -ErrorAction Silentlycontinue -WarningAction Silentlycontinue | Get-DomainUser -Domain $Domain -Server $Server -Credential $Creds -ErrorAction Silentlycontinue -WarningAction Silentlycontinue | Where-Object {!($_.memberof -match "Domain Admins" -or $_.memberof -match "Enterprise Admins")} | Select-Object samaccountname | Select-Object samaccountname
+		$data = Get-DomainGroupMember -Identity "Exchange Windows Permissions" -Domain $Domain -Server $Server -Credential $Creds -Recurse -ErrorAction Silentlycontinue -WarningAction Silentlycontinue | Get-DomainUser -Domain $Domain -Server $Server -Credential $Creds -ErrorAction Silentlycontinue -WarningAction Silentlycontinue | Where-Object {!($_.memberof -match $DomainAdminGroupName -or $_.memberof -match $EnterpriseAdminGroupName)} | Select-Object samaccountname | Select-Object samaccountname
 		$file = "$data_path\Exchange_memberships_ExchangeWindowsPermissions.txt"
 		if ($data){ 
 				$count = $data | Measure-Object | Select-Object -expand Count
@@ -3461,7 +3575,7 @@ Invoke-ADCheckExchange -Domain 'contoso.com' -Server 'dc1.contoso.com' -User '0x
 		Write-Host " "
 		
 		Write-Host "---Checking for Organization Management membership---"	
-		$data = Get-DomainGroupMember -Identity "Organization management" -Domain $Domain -Server $Server -Credential $Creds -Recurse -ErrorAction Silentlycontinue -WarningAction Silentlycontinue | Get-DomainUser -Domain $Domain -Server $Server -Credential $Creds -ErrorAction Silentlycontinue -WarningAction Silentlycontinue | Where-Object {!($_.memberof -match "Domain Admins" -or $_.memberof -match "Enterprise Admins")} | Select-Object samaccountname | Select-Object samaccountname
+		$data = Get-DomainGroupMember -Identity "Organization management" -Domain $Domain -Server $Server -Credential $Creds -Recurse -ErrorAction Silentlycontinue -WarningAction Silentlycontinue | Get-DomainUser -Domain $Domain -Server $Server -Credential $Creds -ErrorAction Silentlycontinue -WarningAction Silentlycontinue | Where-Object {!($_.memberof -match $DomainAdminGroupName -or $_.memberof -match $EnterpriseAdminGroupName)} | Select-Object samaccountname | Select-Object samaccountname
 		$file = "$data_path\Exchange_memberships_OrganizationManagement.txt"
 		if ($data){ 
 				$count = $data | Measure-Object | Select-Object -expand Count
