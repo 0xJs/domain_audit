@@ -4157,19 +4157,20 @@ Invoke-ADCheckFineGrainedPasswordPolicy -Domain 'contoso.com' -Server 'dc1.conto
 	}
 	
 	Write-Host "---Checking Fine-grained password policy--"
-	$data = Get-DomainUser -Server $Server -Domain $Domain -Credential $Creds -Properties samaccountname, msDS-ResultantPSO | Where-Object -Property msDS-ResultantPSO
+	$data = Get-DomainUser -Server $Server -Domain $Domain -Credential $Creds -Properties samaccountname, msDS-ResultantPSO, useraccountcontrol 
+	$data2 = $data | Where-Object -Property msDS-ResultantPSO
 	$file = "$data_path\users_finegrainedpasswordpolicy.txt"
-	if ($data){ 
-		$count = $data | Measure-Object | Select-Object -expand Count
+	if ($data2){ 
+		$count = $data2 | Measure-Object | Select-Object -expand Count
 		Write-Host -ForegroundColor Red "[-] There are $count users that have a fine-grained password policy"
 		Write-Host "[W] Writing to $file"
-		$data | Select-Object samaccountname,msds-psoapplied | Out-File $file
+		$data2 | Select-Object samaccountname,msds-psoapplied | Out-File $file
 		
-		$data2 = Get-DomainUser -Server $Server -Domain $Domain -Credential $Creds -Properties samaccountname, msDS-ResultantPSO | Where-Object -Property msDS-ResultantPSO -EQ $null | Where-Object -Property useraccountcontrol -NotMatch "ACCOUNTDISABLE" | Select-Object samaccountname
+		$data3 = $data | Where-Object -Property msDS-ResultantPSO -EQ $null | Where-Object -Property useraccountcontrol -NotMatch "ACCOUNTDISABLE" | Select-Object samaccountname
 		$file = "$data_path\users_NOfinegrainedpasswordpolicy.txt"
 		Write-Host -ForegroundColor Red "[-] If you don't want to lockout users, spray with this list!"
 		Write-Host "[W] Writing list of usernames without a finegrained password policy to $file"
-		$data2.samaccountname | Out-File $file
+		$data3.samaccountname | Out-File $file
 	}
 	else {
 		Write-Host -ForegroundColor DarkGreen "[+] There where no users with a fine-grained password policy"
