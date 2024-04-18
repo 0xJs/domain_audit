@@ -1499,6 +1499,20 @@ Invoke-ADEnumAzure -Domain 'contoso.com' -Server 'dc1.contoso.com' -User '0xjs' 
 			Write-Host "[+] Azure SSO is not configured"
 		}
 	Write-Host " "
+
+	# Check for AZUREADSSOACC with old password
+	Write-Host "---Checking if AZUREADSSOACC computer account has a password older then 30 days---"
+	$data = Get-DomainComputer -Domain $Domain -Server $Server -Credential $Creds -Identity AZUREADSSOACC | Where-Object {$_.pwdlastset -lt (Get-Date).AddDays(-30)} | Select-Object samaccountname, pwdlastset 
+	$file = "$findings_path\oldpassword_AZUREADSSOACC.txt"
+	if ($data){ 
+			Write-Host -ForegroundColor Red "[-] The password from the AZUREADSSOACC is older then 30 days"
+			Write-Host "[W] Writing to $file"
+			$data | Out-File $file
+		}
+		else {
+			Write-Host -ForegroundColor DarkGreen "[+] The password from the AZUREADSSOACC is not older then 30 days"
+		}
+	Write-Host " "
 }
 
 Function Invoke-ADCheckPasspol {
