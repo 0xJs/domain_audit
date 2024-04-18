@@ -77,6 +77,7 @@ Invoke-ADCheckAll will execute the following in order:
 - Check if the amount of admins is more then 5% (High amount of admins in the domain)
 - Enumerate domain trusts and trusts within forst
 - Check if AzureAD or Azure SSO is installed
+  - Check if SSO machine account had password older then 30 days
 - Execute a runas in a new window for the SQL checks
   - Check for SQL instances in the domain
   - Check if current user has access to SQL instances
