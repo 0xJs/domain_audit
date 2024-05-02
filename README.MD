@@ -41,17 +41,22 @@ python pipx install . --python <Directory to python3.10.exe>
 ### Script paths
 Make sure the path viariables in the script to the following tools are correct (if you followed the installation steps it should be)
 
-```
+```PowerShell
 $script:PowerView_Path = "$PSScriptRoot\import\PowerView.ps1"
 $script:Powerupsql_Path = "$PSScriptRoot\import\PowerUpSQL.ps1"
-$script:Impacket_Path = "$PSScriptRoot\import\impacket"
+$script:PowerMad_Path = "$PSScriptRoot\import\Powermad.ps1"
 $script:BloodHound_Path = "$PSScriptRoot\import\Sharphound.ps1"
+$script:Portscan_Path = "$PSScriptRoot\import\Invoke-Portscan.ps1"
+$script:RunAs_Path = "$PSScriptRoot\import\Invoke-RunAs.ps1"
 $script:GpRegisteryPolicy_Path = "$PSScriptRoot\import\GPRegistryPolicy\GPRegistryPolicy.psd1"
+$script:Impacket_Path = "$PSScriptRoot\import\impacket"
+$script:LdapRelayScan_Path = "$PSScriptRoot\import\LdapRelayScan\LdapRelayScan.py"
 $script:NetExec_Path = "~\.local\bin\nxc.exe"
 $script:Certipy_Path = "~\.local\bin\certipy.exe"
-$script:LdapRelayScan_Path = "$PSScriptRoot\import\LdapRelayScan\LdapRelayScan.py"
+$script:Python_Path = "~\AppData\Local\Programs\Python\Python312\python.exe"
 ```
 
+### Known problems with fixes
 - Issue with accessing Sysvol access denied?
     - To resolve this issue run `gpedit.msc`, go to `Computer -> Administrative Templates -> Network -> Network Provider -> Hardened UNC Paths`, enable the policy and click "Show" button.
     - Enter `*` into "Value name" and enter `RequireMutualAuthentication=0,RequireIntegrity=0,RequirePrivacy=0` in value.
@@ -68,22 +73,24 @@ reg add HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\NetworkProvider\H
     - This is required to change the DNS server to DC IP and add domain to hosts file. Otherwise some checks/executions will fail such as Impacket.
 
 ### Run all checks
-```
-PS C:\Users\user\Desktop> . C:\Tools\domain_audit\domain_audit.ps1
+The script has a function to run all checks, see [the heading Checks](#checks)
+
+```PowerShell
+PS C:\Users\user\Desktop> Import-Module domain_audit.ps1
 PS C:\Users\user\Desktop> Invoke-ADCheckAll -Domain "amsterdam.bank.local" -User "john" -Password "Welcome2022!" -Server 10.0.0.3
 ```
-- Example output at the bottom of the page.
+- Example output is located at [the heading Example output Invoke-ADCheckAll](#example-output-invoke-adcheckall).
 
 ### Run seperate checks
 - Some checks need the DNS And domain name in the host file. So best is to set that!
 
 #### Set dns and host file
-```
+```PowerShell
 Invoke-ChangeDNS -Server 10.0.0.3 -Domain "amsterdam.bank.local"
 ```
 
 #### Run a check
-```
+```PowerShell
 Invoke-ADEnum -Domain "amsterdam.bank.local" -User "john" -Password "Welcome2022!" -Server 10.0.0.3
 Invoke-ADEnumTrust -Domain "amsterdam.bank.local" -User "john" -Password "Welcome2022!" -Server 10.0.0.3
 Invoke-ADCheckSQL -Domain "amsterdam.bank.local" -User "john" -Password "Welcome2022!" -Server 10.0.0.3
@@ -206,11 +213,10 @@ Invoke-ADCheckAll will execute the following in order:
 - Check for access to discovered machines over SMB, RDP, MSSQL etc!
 - Find a way to audit all ACL's (Invoke-ACLScanner doesnt work well from non domain joined perspective, -ResolvGUIDS breaks!)
 - Add ADCS checks, but need to set this up in a LAB environment first.
-- Add function to skip dns change
 - Add dependancy options to each function
 
 ## Example output Invoke-ADCheckAll
-```
+```PowerShell
 PS C:\Users\user\Desktop> . C:\Tools\domain_audit\domain_audit.ps1
 PS C:\Users\user\Desktop> Invoke-ADCheckAll -Domain "amsterdam.bank.local" -User "john" -Password "Welcome2022!" -Server 10.0.0.3
 
@@ -484,4 +490,4 @@ VERBOSE: WEB01.amsterdam.bank.local : Checking for autoexec stored procedures...
 [W] Writing to C:\Users\user\Desktop\amsterdam.bank.local-2022-08-22\findings\SQLserver_sqlaudit.txt
 ```
 
-![image](https://user-images.githubusercontent.com/43987245/179800219-f087ba71-7d87-4a03-8f02-f5833b6a0289.png)
+![image](Resources/example_output.png)
