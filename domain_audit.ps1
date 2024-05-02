@@ -113,7 +113,7 @@ if (-not(Test-Path -Path $LdapRelayScan_Path)) {
 	Write-Host " "
 }
 
-$CheckPython = (python -V)
+$CheckPython = (& $Python_Path -V)
 if (-not($CheckPython -Match "Python")) {
 	Write-Host -ForegroundColor Red "Python doesn't exist. Please check installation."
 	Write-Host -ForegroundColor Red "Won't be able to do any of the SMB or share checks"
@@ -124,8 +124,8 @@ if (-not(Test-Path -Path $NetExec_Path)) {
 	Write-Host -ForegroundColor Red "Won't be able to do any of the SMB or share checks"
 }
 
-if (-not(Test-Path -Path $Certipy)) {
-	Write-Host -ForegroundColor Red "$Certipy doesn't exist."
+if (-not(Test-Path -Path $Certipy_Path)) {
+	Write-Host -ForegroundColor Red "$Certipy_Path doesn't exist."
 	Write-Host -ForegroundColor Red "Won't be able to retrieve ADCS templates and check for vulnerabilities"
 }
 
