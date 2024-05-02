@@ -41,11 +41,11 @@ python -m pipx install .
 ```
 
 ### Installing certipy
-for using multiple python versions the github repo https://github.com/pyenv-win/pyenv-win can be used. 
-1. Install https://github.com/pyenv-win/pyenv-win, this is used for installing multiple python versions next to your existing one.
+for using multiple python versions the pyenv-win can be used, see the repo https://github.com/pyenv-win/pyenv-win.
+1. Install https://github.com/pyenv-win/pyenv-win.
 2. `pyenv install 3.10`. This installs python version 3.10, in the folder  `~\.pyenv\pyenv-win\versions`
 
-In the setup.py the package `setuptools` is added. If you want to git clone it, you can, but you need to add this yourself.
+In imports/Certipy, some changes were made to install it correctly. In `setup.py` the required package `setuptools` is added. You can manually download certipy if needed and add this package yourself.
 
 ```
 cd Certipy;
@@ -53,7 +53,7 @@ python -m pipx install . --python <Directory to python3.10.exe>
 ```
 
 ### Script paths
-Make sure the path viariables in the script to the following tools are correct (if you followed the installation steps it should be)
+Make sure the path variables to the tools used by Domain Audit are set correctly (if you followed the [Installation & Setup](#installation--setup) steps, it should be)
 
 ```PowerShell
 $script:PowerView_Path = "$PSScriptRoot\import\PowerView.ps1"
@@ -85,16 +85,16 @@ reg add HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\NetworkProvider\H
 ## Running domain_audit
 - Start PowerShell as Administrator
     - When you're running Domain Audit from a non domain joined machine, it is required to make changes to the DNS server and the hosts file. Otherwise some checks/executions will fail such as Impacket.
-    - If you're running Domain Audit from a domain joined machine (against the domain your system is a member of), you can use the argument `- SkipDNSChanges`.
+    - If you're running Domain Audit from a domain joined machine (against the domain your system is a member of), you can use the argument `-SkipDNSChanges`.
 
 ### Run all checks
-The script has a function to run all checks, see [the heading Checks](#checks)
+The script has a function to run all checks, see [Checks](#checks)
 
 ```PowerShell
 PS C:\Users\user\Desktop> Import-Module domain_audit.ps1
 PS C:\Users\user\Desktop> Invoke-ADCheckAll -Domain "amsterdam.bank.local" -User "john" -Password "Welcome2022!" -Server 10.0.0.3
 ```
-- Example output is located at [the heading Example output Invoke-ADCheckAll](#example-output-invoke-adcheckall).
+- Example output is located at [Example output Invoke-ADCheckAll](#example-output-invoke-adcheckall).
 
 ### Run seperate checks
 - Some checks need the DNS And domain name in the host file. This can be achieved with the Invoke-ChangeDNS command.
