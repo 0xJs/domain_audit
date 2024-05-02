@@ -2,9 +2,9 @@
 The tool is a wrapper around PowerView, Impacket, PowerUpSQL, BloodHound, Ldaprelayscan and NetExec to automate the execution of enumeration and a lot of checks performed during a On-Prem Active Directory Penetrationtest. Thanks to all the authors of the original tools.
 
 ## Installation & Setup
-- Install python 3.12.3 (For example from the Windows store, or through winget)
+- Install python 3.12 (For example from the Windows store, or through winget)
 ```
-winget install -e --id Python.Python.3.12.3
+winget install -e --id Python.Python.3.12
 ```
 
 - Download the latest version of Domain Audit
@@ -25,7 +25,7 @@ python -m pip install -r .\requirements.txt
 cd ../;
 git clone https://github.com/Pennyw0rth/NetExec;
 cd NetExec;
-python pipx install .
+python -m pipx install .
 ```
 
 ### Installing certipy

@@ -14,7 +14,7 @@ $script:Impacket_Path = "$PSScriptRoot\import\impacket"
 $script:LdapRelayScan_Path = "$PSScriptRoot\import\LdapRelayScan\LdapRelayScan.py"
 $script:NetExec_Path = "~\.local\bin\nxc.exe"
 $script:Certipy_Path = "~\.local\bin\certipy.exe"
-$script:Python_Path = "C:\Users\JustRelax\AppData\Local\Programs\Python\Python312\python.exe"
+$script:Python_Path = "~\AppData\Local\Programs\Python\Python312\python.exe"
 
 # Variables
 $script:CredentialStatus = ''
