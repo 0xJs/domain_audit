@@ -1,27 +1,54 @@
 # Domain Audit
-The tool is a wrapper around PowerView, Impacket, PowerUpSQL, BloodHound, Ldaprelayscan and Crackmapexec to automate the execution of enumeration and a lot of checks performed during a On-Prem Active Directory Penetrationtest. Thanks to all the authors of the original tools.
+The tool is a wrapper around PowerView, Impacket, PowerUpSQL, BloodHound, Ldaprelayscan and NetExec to automate the execution of enumeration and a lot of checks performed during a On-Prem Active Directory Penetrationtest. Thanks to all the authors of the original tools.
 
 ## Installation & Setup
-- Install python 3.10 (For example from the Windows store)
+- Install python 3.12.3 (For example from the Windows store, or through winget)
+```
+winget install -e --id Python.Python.3.12.3
+```
+
+- Download the latest version of Domain Audit
 ```
 git clone https://github.com/0xJs/domain_audit
+```
+
+- Install pre-requirements for running Domain Audit
+```
 cd .\domain_audit\import\
-git clone https://github.com/SecureAuthCorp/impacket
-cd impacket; python3 -m pip install .
+git clone https://github.com/fortra/impacket
+cd impacket; 
+python -m pip install .
 cd ../;
 git clone https://github.com/zyn3rgy/LdapRelayScan;
 cd LdapRelayScan;
-python3 -m pip install -r .\requirements.txt
-cd ../../;
+python -m pip install -r .\requirements.txt
+cd ../;
+git clone https://github.com/Pennyw0rth/NetExec;
+cd NetExec;
+python pipx install .
 ```
-- Make sure the path viariables in the script to the following tools are correct (if you followed the installation steps it should be)
+
+### Installing certipy
+for using multiple python versions the github repo 'https://github.com/pyenv-win/pyenv-win' can be used. With the command `pyenv install <version>`, you can install another version next to your current version. The python.exe will be installed in `~\.pyenv\pyenv-win\versions`.
+
+In the setup.py the package `setuptools` is added. If you want to git clone it, you can, but you need to add this yourself.
+
+```
+cd Certipy;
+python pipx install . --python <Directory to python3.10.exe>
+```
+
+### Script paths
+Make sure the path viariables in the script to the following tools are correct (if you followed the installation steps it should be)
+
 ```
 $script:PowerView_Path = "$PSScriptRoot\import\PowerView.ps1"
 $script:Powerupsql_Path = "$PSScriptRoot\import\PowerUpSQL.ps1"
 $script:Impacket_Path = "$PSScriptRoot\import\impacket"
 $script:BloodHound_Path = "$PSScriptRoot\import\Sharphound.ps1"
 $script:GpRegisteryPolicy_Path = "$PSScriptRoot\import\GPRegistryPolicy\GPRegistryPolicy.psd1"
-$script:CME_Path = "$PSScriptRoot\import\cme"
+$script:NetExec_Path = "~\.local\bin\nxc.exe"
+$script:Certipy_Path = "~\.local\bin\certipy.exe"
 $script:LdapRelayScan_Path = "$PSScriptRoot\import\LdapRelayScan\LdapRelayScan.py"
 ```
 
