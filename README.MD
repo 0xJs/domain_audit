@@ -22,20 +22,34 @@ cd ../;
 git clone https://github.com/zyn3rgy/LdapRelayScan;
 cd LdapRelayScan;
 python -m pip install -r .\requirements.txt
-cd ../;
+```
+
+### Installing NetExec
+NetExec has some pre-requirements before installing (https://www.netexec.wiki/getting-started/installation/installation-on-windows)
+- https://visualstudio.microsoft.com/en/visual-cpp-build-tools/ (The option 'Desktop development with C++')
+- Rust (can be installed with winget)
+
+```
+winget install -e --id Rustlang.Rustup
+```
+
+After the requirements are installed, we can install NetExec:
+```
 git clone https://github.com/Pennyw0rth/NetExec;
 cd NetExec;
 python -m pipx install .
 ```
 
 ### Installing certipy
-for using multiple python versions the github repo 'https://github.com/pyenv-win/pyenv-win' can be used. With the command `pyenv install <version>`, you can install another version next to your current version. The python.exe will be installed in `~\.pyenv\pyenv-win\versions`.
+for using multiple python versions the github repo https://github.com/pyenv-win/pyenv-win can be used. 
+1. Install https://github.com/pyenv-win/pyenv-win, this is used for installing multiple python versions next to your existing one.
+2. `pyenv install 3.10`. This installs python version 3.10, in the folder  `~\.pyenv\pyenv-win\versions`
 
 In the setup.py the package `setuptools` is added. If you want to git clone it, you can, but you need to add this yourself.
 
 ```
 cd Certipy;
-python pipx install . --python <Directory to python3.10.exe>
+python -m pipx install . --python <Directory to python3.10.exe>
 ```
 
 ### Script paths
