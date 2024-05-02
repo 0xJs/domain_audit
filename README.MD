@@ -84,7 +84,8 @@ reg add HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\NetworkProvider\H
 
 ## Running domain_audit
 - Start PowerShell as Administrator
-    - This is required to change the DNS server to DC IP and add domain to hosts file. Otherwise some checks/executions will fail such as Impacket.
+    - When you're running Domain Audit from a non domain joined machine, it is required to make changes to the DNS server and the hosts file. Otherwise some checks/executions will fail such as Impacket.
+    - If you're running Domain Audit from a domain joined machine (against the domain your system is a member of), you can use the argument `- SkipDNSChanges`.
 
 ### Run all checks
 The script has a function to run all checks, see [the heading Checks](#checks)
@@ -96,14 +97,14 @@ PS C:\Users\user\Desktop> Invoke-ADCheckAll -Domain "amsterdam.bank.local" -User
 - Example output is located at [the heading Example output Invoke-ADCheckAll](#example-output-invoke-adcheckall).
 
 ### Run seperate checks
-- Some checks need the DNS And domain name in the host file. So best is to set that!
+- Some checks need the DNS And domain name in the host file. This can be achieved with the Invoke-ChangeDNS command.
 
-#### Set dns and host file
+#### Set DNS and host file
 ```PowerShell
 Invoke-ChangeDNS -Server 10.0.0.3 -Domain "amsterdam.bank.local"
 ```
 
-#### Run a check
+#### Run a single check
 ```PowerShell
 Invoke-ADEnum -Domain "amsterdam.bank.local" -User "john" -Password "Welcome2022!" -Server 10.0.0.3
 Invoke-ADEnumTrust -Domain "amsterdam.bank.local" -User "john" -Password "Welcome2022!" -Server 10.0.0.3
@@ -111,7 +112,7 @@ Invoke-ADCheckSQL -Domain "amsterdam.bank.local" -User "john" -Password "Welcome
 ```
 
 ## Output
-The tool will create a directory with the domain name and date on current directory or in the supplied location. In this directory there are three directories:
+From where you're executing the Invoke command a new directory will be created automatically. The directory name has the current date and the domain name. In this directory there will be three folders:
 - ```Data```, has .csv files from domain objects, bloodhound data and some lists of objects.
 - ```Findings```, has output from checks that could be something interesting or reported as a finding.
 - ```Checks```, has output from checks that should be assessed manually to check ifs something to be reported.
