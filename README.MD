@@ -98,6 +98,7 @@ The tool will create a directory with the domain name and date on current direct
 ## Checks
 <details>
 <summary>Invoke-ADCheckAll</summary>
+
 Invoke-ADCheckAll will execute the following in order:
 - Collect basic data of AD objects and place them in `/data/` directory in `.csv` format
 - Collect data with bloodhound - Collectionmethods all, acl and sessions in the background.
@@ -192,6 +193,7 @@ Invoke-ADCheckAll will execute the following in order:
     - Check if the current user can access over WINRM
     - Check if the current user can access over RDP
     - Check if the current user can access over MSSQL and is sysadmin (WIP)
+
 </details>
 
 ## ToDo's & Features
