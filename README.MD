@@ -96,6 +96,8 @@ The tool will create a directory with the domain name and date on current direct
 - ```Checks```, has output from checks that should be assessed manually to check ifs something to be reported.
 
 ## Checks
+<details>
+<summary>Invoke-ADCheckAll</summary>
 Invoke-ADCheckAll will execute the following in order:
 - Collect basic data of AD objects and place them in `/data/` directory in `.csv` format
 - Collect data with bloodhound - Collectionmethods all, acl and sessions in the background.
@@ -190,8 +192,9 @@ Invoke-ADCheckAll will execute the following in order:
     - Check if the current user can access over WINRM
     - Check if the current user can access over RDP
     - Check if the current user can access over MSSQL and is sysadmin (WIP)
+</details>
 
-## TO-DO & Features
+## ToDo's & Features
 - Create query for EOS Server versions?
 - Update queries/checks for domain admin/enterprise admins to all privileged groups.
 - Update queries to filter disabled users from data.
