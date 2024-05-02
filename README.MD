@@ -230,6 +230,10 @@ Invoke-ADCheckAll will execute the following in order:
 - Add dependancy options to each function
 
 ## Example output Invoke-ADCheckAll
+
+<details>
+<summary>Example output Invoke-ADCheckAll</summary>
+
 ```PowerShell
 PS C:\Users\user\Desktop> . C:\Tools\domain_audit\domain_audit.ps1
 PS C:\Users\user\Desktop> Invoke-ADCheckAll -Domain "amsterdam.bank.local" -User "john" -Password "Welcome2022!" -Server 10.0.0.3
@@ -505,3 +509,5 @@ VERBOSE: WEB01.amsterdam.bank.local : Checking for autoexec stored procedures...
 ```
 
 ![image](Resources/example_output.png)
+
+</details>
