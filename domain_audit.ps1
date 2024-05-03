@@ -12,9 +12,10 @@ $script:RunAs_Path = "$PSScriptRoot\import\Invoke-RunAs.ps1"
 $script:GpRegisteryPolicy_Path = "$PSScriptRoot\import\GPRegistryPolicy\GPRegistryPolicy.psd1"
 $script:Impacket_Path = "$PSScriptRoot\import\impacket"
 $script:LdapRelayScan_Path = "$PSScriptRoot\import\LdapRelayScan\LdapRelayScan.py"
-$script:NetExec_Path = "~\.local\bin\nxc.exe"
-$script:Certipy_Path = "~\.local\bin\certipy.exe"
-$script:Python_Path = "~\AppData\Local\Programs\Python\Python312\python.exe"
+$currentUser = [Environment]::UserName
+$script:NetExec_Path = "c:\Users\$currentUser\.local\bin\nxc.exe"
+$script:Certipy_Path = "c:\Users\$currentUser\.local\bin\certipy.exe"
+$script:Python_Path = "c:\Users\$currentUser\AppData\Local\Programs\Python\Python312\python.exe"
 
 # Variables
 $script:CredentialStatus = ''
@@ -3709,9 +3710,11 @@ Invoke-ADCheckCS -Domain 'contoso.com' -Server 'dc1.contoso.com' -User '0xjs' -P
 	if ($data){
 		$count = $data | Measure-Object | Select-Object -expand Count
 		Write-Host -ForeGroundColor Yellow "[+] ADCS installed on $count machines"
-		Write-Host -ForeGroundColor Yellow "[+] Please manually check for ADCS vulns"
 		Write-Host "[W] Writing to $file"
 		$data | Out-File $file
+
+		# Running ADCS ESC Check
+		Invoke-ADCSESCCheck -Domain $Domain -Server $Server -User $User -Password $Password 
 	}
 	else {
 		Write-Host -ForegroundColor DarkGreen "[+] ADCS not installed"
@@ -4873,4 +4876,157 @@ Invoke-ADCheckSMB -Domain 'contoso.com' -Server 'dc1.contoso.com' -User '0xjs' -
 	#	Write-Host -ForegroundColor DarkGreen "[+] Skipping MSSQL no hosts"
 	#}
 
+}
+
+Function Invoke-ADCSESCCheck {
+<#
+.SYNOPSIS
+Author: Stan Plasmeijer - JustRelax & Maarten van Norden
+Required Dependencies: Certipy
+Optional Dependencies: None
+
+.DESCRIPTION
+Check if there are vulnerable Certificate Templates at the ADCS
+
+.PARAMETER Domain
+Specifies the domain to use for the query and creating outputdirectory.
+
+.PARAMETER Server
+Specifies an Active Directory server IP to bind to, e.g. 10.0.0.1
+
+.PARAMETER User
+Specifies the username to use for the query.
+
+.PARAMETER Password
+Specifies the Password in combination with the username to use for the query.
+
+.PARAMETER OutputDirectory
+Specifies the path to use for the output directory, defaults to the current directory.
+
+.EXAMPLE
+Invoke-ADCheckSMB -Domain 'contoso.com' -Server 'dc1.contoso.com' -User '0xjs' -Password 'Password01!'
+#>
+
+	#Parameters
+	[CmdletBinding()]
+	Param(
+		[Parameter(Mandatory=$true,HelpMessage="Enter a domain name here, e.g. contoso.com")]
+		[ValidateNotNullOrEmpty()]
+		[string]$Domain,
+		
+		[Parameter(Mandatory=$true,HelpMessage="Enter a IP of a domain controller here, e.g. 10.0.0.1")]
+		[ValidateNotNullOrEmpty()]
+		[string]$Server,
+		
+		[Parameter(Mandatory=$true,HelpMessage="Enter the username to connect with")]
+		[ValidateNotNullOrEmpty()]
+		[string]$User,
+		
+		[Parameter(Mandatory=$true,HelpMessage="Enter the password of the user")]
+		[ValidateNotNullOrEmpty()]
+		[string]$Password,
+		
+		[Parameter(Mandatory=$false)]
+		[ValidateNotNullOrEmpty()]
+		[string]$OutputDirectory
+	)
+
+	if ($OutputDirectoryCreated -ne $true) {
+		if ($PSBoundParameters['OutputDirectory']) {
+			New-OutputDirectory -Domain $Domain -OutputDirectory $OutputDirectory
+			}
+			else {
+				New-OutputDirectory -Domain $Domain
+		}
+	}
+	
+	Write-Verbose "[+] Function Invoke-ADCSCheck"
+	
+	#Collect ADCS certificate templates and analyse output for any ESC vulnerabilities.
+	$certipy_creds = $User + '@' + $Domain 
+	$data = & $Certipy_Path find -u $certipy_creds -p $Password -dc-ip $Server -stdout 2>null
+	$file = "$data_path\Certipy-output.txt"
+    $data | Out-File -Encoding utf8 $file
+	Write-Host ""
+
+	Write-Host "---Checking for vulnerable Certificate templates---"
+	if ($data -Match "Vulnerabilities"){
+		Write-Host -ForegroundColor Red "[-] Vulnerable Certificate templates have been found!"
+		Write-Host ""
+
+		if ($data -Match "ESC1"){
+			$file = "$findings_path\ESC1.txt"
+			Write-Host -ForegroundColor Red "[-] ESC1 HAS BEEN FOUND"
+			Write-Host "[W] Writing to $file"
+			$data | Out-File -Encoding utf8 $file
+			Write-Host ""
+		}
+
+        if ($data -Match "ESC2"){
+            $file = "$findings_path\ESC2.txt"
+            Write-Host -ForegroundColor Red "[-] ESC2 HAS BEEN FOUND"
+            Write-Host "[W] Writing to $file"
+            $data | Out-File -Encoding utf8 $file
+			Write-Host ""
+        }
+ 
+        if ($data -Match "ESC3"){
+            $file = "$findings_path\ESC3.txt"
+            Write-Host -ForegroundColor Red "[-] ESC3 HAS BEEN FOUND"
+            Write-Host "[W] Writing to $file"
+            $data | Out-File -Encoding utf8 $file
+        	Write-Host ""
+        }
+ 
+        if ($data -Match "ESC4"){
+            $file = "$findings_path\ESC4.txt"
+            Write-Host -ForegroundColor Red "[-] ESC4 HAS BEEN FOUND"
+            Write-Host "[W] Writing to $file"
+            $data | Out-File -Encoding utf8 $file
+       		Write-Host ""
+        }
+ 
+        if ($data -Match "ESC7"){
+            $file = "$findings_path\ESC7.txt"
+            Write-Host -ForegroundColor Red "[-] ESC7 HAS BEEN FOUND"
+            Write-Host "[W] Writing to $file"
+            $data | Out-File -Encoding utf8 $file
+        	Write-Host ""
+        }
+ 
+        if ($data -Match "ESC8"){
+            $file = "$findings_path\ESC8.txt"
+            Write-Host -ForegroundColor Red "[+] ESC8 HAS BEEN FOUND"
+            Write-Host "[W] Writing to $file"
+            $data | Out-File -Encoding utf8 $file
+        	Write-Host ""
+        }
+ 
+        if ($data -Match "ESC9"){
+            $file = "$findings_path\ESC9.txt"
+            Write-Host -ForegroundColor Red "[-] ESC9 HAS BEEN FOUND"
+            Write-Host "[W] Writing to $file"
+            $data | Out-File -Encoding utf8 $file
+        	Write-Host ""
+        }
+ 
+        if ($data -Match "ESC10"){
+            $file = "$findings_path\ESC10.txt"
+            Write-Host -ForegroundColor Red "[-] ESC10 HAS BEEN FOUND"
+            Write-Host "[W] Writing to $file"
+            $data | Out-File -Encoding utf8 $file
+        	Write-Host ""
+        }
+ 
+        if ($data -Match "ESC11"){
+            $file = "$findings_path\ESC11.txt"
+            Write-Host -ForegroundColor Red "[-] ESC11 HAS BEEN FOUND"
+            Write-Host "[W] Writing to $file"
+            $data | Out-File -Encoding utf8 $file
+        	Write-Host ""
+        }
+	}
+	else{
+		Write-Host -ForegroundColor DarkGreen "[+] No vulnerable Certificate templates have been found for the current user!"
+	}
 }
