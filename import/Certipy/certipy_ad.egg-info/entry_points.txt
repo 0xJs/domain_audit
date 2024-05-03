@@ -1,0 +1,2 @@
+[console_scripts]
+certipy = certipy.entry:main

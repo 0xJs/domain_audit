@@ -1,0 +1,17 @@
+setuptools
+asn1crypto
+cryptography>=39.0
+impacket
+ldap3
+pyasn1==0.4.8
+dnspython
+dsinternals
+pyopenssl>=23.0.0
+requests
+requests_ntlm
+pycryptodome
+unicrypto
+
+[:platform_system == "Windows"]
+winacl
+wmi

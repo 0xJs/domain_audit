@@ -1,30 +1,76 @@
 # Domain Audit
-The tool is a wrapper around PowerView, Impacket, PowerUpSQL, BloodHound, Ldaprelayscan and Crackmapexec to automate the execution of enumeration and a lot of checks performed during a On-Prem Active Directory Penetrationtest. Thanks to all the authors of the original tools.
+The tool is a wrapper around PowerView, Impacket, PowerUpSQL, BloodHound, Ldaprelayscan and NetExec to automate the execution of enumeration and a lot of checks performed during a On-Prem Active Directory Penetrationtest. Thanks to all the authors of the original tools.
 
 ## Installation & Setup
-- Install python 3.10 (For example from the Windows store)
+- Install python 3.12 (For example from the Windows store, or through winget)
+```
+winget install -e --id Python.Python.3.12
+```
+
+- Download the latest version of Domain Audit
 ```
 git clone https://github.com/0xJs/domain_audit
+```
+
+- Install pre-requirements for running Domain Audit
+```
 cd .\domain_audit\import\
-git clone https://github.com/SecureAuthCorp/impacket
-cd impacket; python3 -m pip install .
+git clone https://github.com/fortra/impacket
+cd impacket; 
+python -m pip install .
 cd ../;
 git clone https://github.com/zyn3rgy/LdapRelayScan;
 cd LdapRelayScan;
-python3 -m pip install -r .\requirements.txt
-cd ../../;
-```
-- Make sure the path viariables in the script to the following tools are correct (if you followed the installation steps it should be)
-```
-$script:PowerView_Path = "$PSScriptRoot\import\PowerView.ps1"
-$script:Powerupsql_Path = "$PSScriptRoot\import\PowerUpSQL.ps1"
-$script:Impacket_Path = "$PSScriptRoot\import\impacket"
-$script:BloodHound_Path = "$PSScriptRoot\import\Sharphound.ps1"
-$script:GpRegisteryPolicy_Path = "$PSScriptRoot\import\GPRegistryPolicy\GPRegistryPolicy.psd1"
-$script:CME_Path = "$PSScriptRoot\import\cme"
-$script:LdapRelayScan_Path = "$PSScriptRoot\import\LdapRelayScan\LdapRelayScan.py"
+python -m pip install -r .\requirements.txt
 ```
 
+### Installing NetExec
+NetExec has some pre-requirements before installing (https://www.netexec.wiki/getting-started/installation/installation-on-windows)
+- https://visualstudio.microsoft.com/en/visual-cpp-build-tools/ (The option 'Desktop development with C++')
+- Rust (can be installed with winget)
+
+```
+winget install -e --id Rustlang.Rustup
+```
+
+After the requirements are installed, we can install NetExec:
+```
+git clone https://github.com/Pennyw0rth/NetExec;
+cd NetExec;
+python -m pipx install .
+```
+
+### Installing certipy
+for using multiple python versions the pyenv-win can be used, see the repo https://github.com/pyenv-win/pyenv-win.
+1. Install https://github.com/pyenv-win/pyenv-win.
+2. `pyenv install 3.10`. This installs python version 3.10, in the folder  `~\.pyenv\pyenv-win\versions`
+
+In imports/Certipy, some changes were made to install it correctly. In `setup.py` the required package `setuptools` is added. You can manually download certipy if needed and add this package yourself.
+
+```
+cd Certipy;
+python -m pipx install . --python <Directory to python3.10.exe>
+```
+
+### Script paths
+Make sure the path variables to the tools used by Domain Audit are set correctly (if you followed the [Installation & Setup](#installation--setup) steps, it should be)
+
+```PowerShell
+$script:PowerView_Path = "$PSScriptRoot\import\PowerView.ps1"
+$script:Powerupsql_Path = "$PSScriptRoot\import\PowerUpSQL.ps1"
+$script:PowerMad_Path = "$PSScriptRoot\import\Powermad.ps1"
+$script:BloodHound_Path = "$PSScriptRoot\import\Sharphound.ps1"
+$script:Portscan_Path = "$PSScriptRoot\import\Invoke-Portscan.ps1"
+$script:RunAs_Path = "$PSScriptRoot\import\Invoke-RunAs.ps1"
+$script:GpRegisteryPolicy_Path = "$PSScriptRoot\import\GPRegistryPolicy\GPRegistryPolicy.psd1"
+$script:Impacket_Path = "$PSScriptRoot\import\impacket"
+$script:LdapRelayScan_Path = "$PSScriptRoot\import\LdapRelayScan\LdapRelayScan.py"
+$script:NetExec_Path = "~\.local\bin\nxc.exe"
+$script:Certipy_Path = "~\.local\bin\certipy.exe"
+$script:Python_Path = "~\AppData\Local\Programs\Python\Python312\python.exe"
+```
+
+### Known problems with fixes
 - Issue with accessing Sysvol access denied?
     - To resolve this issue run `gpedit.msc`, go to `Computer -> Administrative Templates -> Network -> Network Provider -> Hardened UNC Paths`, enable the policy and click "Show" button.
     - Enter `*` into "Value name" and enter `RequireMutualAuthentication=0,RequireIntegrity=0,RequirePrivacy=0` in value.
@@ -38,37 +84,43 @@ reg add HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\NetworkProvider\H
 
 ## Running domain_audit
 - Start PowerShell as Administrator
-    - This is required to change the DNS server to DC IP and add domain to hosts file. Otherwise some checks/executions will fail such as Impacket.
+    - When you're running Domain Audit from a non domain joined machine, it is required to make changes to the DNS server and the hosts file. Otherwise some checks/executions will fail such as Impacket.
+    - If you're running Domain Audit from a domain joined machine (against the domain your system is a member of), you can use the argument `-SkipDNSChanges`.
 
 ### Run all checks
-```
-PS C:\Users\user\Desktop> . C:\Tools\domain_audit\domain_audit.ps1
+The script has a function to run all checks, see [Checks](#checks)
+
+```PowerShell
+PS C:\Users\user\Desktop> Import-Module domain_audit.ps1
 PS C:\Users\user\Desktop> Invoke-ADCheckAll -Domain "amsterdam.bank.local" -User "john" -Password "Welcome2022!" -Server 10.0.0.3
 ```
-- Example output at the bottom of the page.
+- Example output is located at [Example output Invoke-ADCheckAll](#example-output-invoke-adcheckall).
 
 ### Run seperate checks
-- Some checks need the DNS And domain name in the host file. So best is to set that!
+- Some checks need the DNS And domain name in the host file. This can be achieved with the Invoke-ChangeDNS command.
 
-#### Set dns and host file
-```
+#### Set DNS and host file
+```PowerShell
 Invoke-ChangeDNS -Server 10.0.0.3 -Domain "amsterdam.bank.local"
 ```
 
-#### Run a check
-```
+#### Run a single check
+```PowerShell
 Invoke-ADEnum -Domain "amsterdam.bank.local" -User "john" -Password "Welcome2022!" -Server 10.0.0.3
 Invoke-ADEnumTrust -Domain "amsterdam.bank.local" -User "john" -Password "Welcome2022!" -Server 10.0.0.3
 Invoke-ADCheckSQL -Domain "amsterdam.bank.local" -User "john" -Password "Welcome2022!" -Server 10.0.0.3
 ```
 
 ## Output
-The tool will create a directory with the domain name and date on current directory or in the supplied location. In this directory there are three directories:
+From where you're executing the Invoke command a new directory will be created automatically. The directory name has the current date and the domain name. In this directory there will be three folders:
 - ```Data```, has .csv files from domain objects, bloodhound data and some lists of objects.
 - ```Findings```, has output from checks that could be something interesting or reported as a finding.
 - ```Checks```, has output from checks that should be assessed manually to check ifs something to be reported.
 
 ## Checks
+<details>
+<summary>Invoke-ADCheckAll</summary>
+
 Invoke-ADCheckAll will execute the following in order:
 - Collect basic data of AD objects and place them in `/data/` directory in `.csv` format
 - Collect data with bloodhound - Collectionmethods all, acl and sessions in the background.
@@ -164,7 +216,9 @@ Invoke-ADCheckAll will execute the following in order:
     - Check if the current user can access over RDP
     - Check if the current user can access over MSSQL and is sysadmin (WIP)
 
-## TO-DO & Features
+</details>
+
+## ToDo's & Features
 - Create query for EOS Server versions?
 - Update queries/checks for domain admin/enterprise admins to all privileged groups.
 - Update queries to filter disabled users from data.
@@ -174,11 +228,14 @@ Invoke-ADCheckAll will execute the following in order:
 - Check for access to discovered machines over SMB, RDP, MSSQL etc!
 - Find a way to audit all ACL's (Invoke-ACLScanner doesnt work well from non domain joined perspective, -ResolvGUIDS breaks!)
 - Add ADCS checks, but need to set this up in a LAB environment first.
-- Add function to skip dns change
 - Add dependancy options to each function
 
 ## Example output Invoke-ADCheckAll
-```
+
+<details>
+<summary>Example output Invoke-ADCheckAll</summary>
+
+```PowerShell
 PS C:\Users\user\Desktop> . C:\Tools\domain_audit\domain_audit.ps1
 PS C:\Users\user\Desktop> Invoke-ADCheckAll -Domain "amsterdam.bank.local" -User "john" -Password "Welcome2022!" -Server 10.0.0.3
 
@@ -452,4 +509,6 @@ VERBOSE: WEB01.amsterdam.bank.local : Checking for autoexec stored procedures...
 [W] Writing to C:\Users\user\Desktop\amsterdam.bank.local-2022-08-22\findings\SQLserver_sqlaudit.txt
 ```
 
-![image](https://user-images.githubusercontent.com/43987245/179800219-f087ba71-7d87-4a03-8f02-f5833b6a0289.png)
+![image](Resources/example_output.png)
+
+</details>
