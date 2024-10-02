@@ -2725,7 +2725,7 @@ Invoke-ADCheckOutdatedComputers -Domain 'contoso.com' -Server 'dc1.contoso.com' 
 			Write-Host "[W] Writing to $file"
 			$data | Out-File $file
 			Write-Host "[+] Replacing Powerview versions with more readable versions"
-			Write-Host "End of servic versions at https://docs.microsoft.com/en-us/windows/release-health/release-information"
+			Write-Host "End of service versions at https://docs.microsoft.com/en-us/windows/release-health/release-information"
 			(Get-Content $file) | Foreach-Object {
 			$_ 	-replace '19043', '21H1' `
 				-replace '19041', '2004' `
@@ -2755,7 +2755,7 @@ Invoke-ADCheckOutdatedComputers -Domain 'contoso.com' -Server 'dc1.contoso.com' 
 			Write-Host "[W] Writing to $file"
 			$data | Out-File $file
 			Write-Host "[+] Replacing Powerview versions with more readable versions"
-			Write-Host "End of servic versions at https://learn.microsoft.com/en-us/windows/release-health/windows11-release-information"
+			Write-Host "End of service versions at https://learn.microsoft.com/en-us/windows/release-health/windows11-release-information"
 			(Get-Content $file) | Foreach-Object {
 			$_ 	-replace '22000', '21H2' `
 				-replace '22621', '22H2' 
