@@ -2741,6 +2741,30 @@ Invoke-ADCheckOutdatedComputers -Domain 'contoso.com' -Server 'dc1.contoso.com' 
 			Write-Host -ForegroundColor DarkGreen "[+] There are no Windows 10 computerobjects computerobjects in the AD that are End Of Service"
 		}
 	Write-Host " "
+	
+	# Checking for EOL operating systems in the AD
+	Write-Host "---Checking if there are end of service Windows 11 operating systems in the AD---"
+	$data = Get-DomainComputer -Credential $Creds -Server $Server -Domain $Domain | Where-Object {$_.operatingsystem -match 'Windows 11'} | Where-Object {
+		$_.operatingsystemversion -match 22000 -or `
+  		$_.operatingsystemversion -match 22621 `
+		} | Select-Object samaccountname, operatingsystem, operatingsystemversion, lastlogon | Sort-Object -Property lastlogon -Descending
+	$file = "$findings_path\computers_W11_EOS.txt"
+	if ($data){ 
+			$count = $data | Measure-Object | Select-Object -expand Count
+			Write-Host -ForegroundColor Red "[-] There are $count Windows 11 computerobjects in the AD that are End Of Service"
+			Write-Host "[W] Writing to $file"
+			$data | Out-File $file
+			Write-Host "[+] Replacing Powerview versions with more readable versions"
+			Write-Host "End of servic versions at https://learn.microsoft.com/en-us/windows/release-health/windows11-release-information"
+			(Get-Content $file) | Foreach-Object {
+			$_ 	-replace '22000', '21H2' `
+				-replace '22621', '22H2' 
+			} | Set-Content $file
+		}
+		else {
+			Write-Host -ForegroundColor DarkGreen "[+] There are no Windows 11 computerobjects computerobjects in the AD that are End Of Service"
+		}
+	Write-Host " "
 }
 
 Function Invoke-ADCheckInactiveObjects {
