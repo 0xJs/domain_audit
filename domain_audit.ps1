@@ -8,10 +8,14 @@ $script:Powerupsql_Path = "$PSScriptRoot\import\PowerUpSQL.ps1"
 $script:PowerMad_Path = "$PSScriptRoot\import\Powermad.ps1"
 $script:BloodHound_Path = "$PSScriptRoot\import\Sharphound.ps1"
 $script:Portscan_Path = "$PSScriptRoot\import\Invoke-Portscan.ps1"
-$script:Impacket_Path = "$PSScriptRoot\import\impacket"
+$script:RunAs_Path = "$PSScriptRoot\import\Invoke-RunAs.ps1"
 $script:GpRegisteryPolicy_Path = "$PSScriptRoot\import\GPRegistryPolicy\GPRegistryPolicy.psd1"
-$script:CME_Path = "$PSScriptRoot\import\cme"
+$script:Impacket_Path = "$PSScriptRoot\import\impacket"
 $script:LdapRelayScan_Path = "$PSScriptRoot\import\LdapRelayScan\LdapRelayScan.py"
+$currentUser = [Environment]::UserName
+$script:NetExec_Path = "c:\Users\$currentUser\.local\bin\nxc.exe"
+$script:Certipy_Path = "c:\Users\$currentUser\.local\bin\certipy.exe"
+$script:Python_Path = "c:\Users\$currentUser\AppData\Local\Programs\Python\Python312\python.exe"
 
 # Variables
 $script:CredentialStatus = ''
@@ -85,6 +89,19 @@ else {
 	}
 }
 
+if (-not(Test-Path -Path $RunAs_Path)) {
+	Write-Host -ForegroundColor Red "$RunAs_Path Not found on the system"
+	Write-Host -ForegroundColor Red "Won't be able to open up a new window with RunAs"
+	break
+}
+else {
+	Import-Module -Force -Name $RunAs_Path -WarningAction silentlycontinue
+	if (-not(Get-Command Invoke-RunAs -Erroraction silentlycontinue)) {
+		Write-Host -ForegroundColor Red "RunAs didn't import correctly"
+		break
+	}	
+}
+
 if (-not(Test-Path -Path $Impacket_Path\examples\GetUserSPNs.py)) {
 	Write-Host -ForegroundColor Red "$Impacket_Path\examples\GetUserSPNs.py doesn't exist. Please check installation."
 	Write-Host -ForegroundColor Red "Won't be able to parse Kerberoast, AS-REPRoast or check for the printspooler service"
@@ -97,15 +114,20 @@ if (-not(Test-Path -Path $LdapRelayScan_Path)) {
 	Write-Host " "
 }
 
-$CheckPython = (python -V)
+$CheckPython = (& $Python_Path -V)
 if (-not($CheckPython -Match "Python")) {
 	Write-Host -ForegroundColor Red "Python doesn't exist. Please check installation."
 	Write-Host -ForegroundColor Red "Won't be able to do any of the SMB or share checks"
 }
 
-if (-not(Test-Path -Path $CME_Path)) {
-	Write-Host -ForegroundColor Red "$CME_Path doesn't exist."
+if (-not(Test-Path -Path $NetExec_Path)) {
+	Write-Host -ForegroundColor Red "$NetExec_Path doesn't exist."
 	Write-Host -ForegroundColor Red "Won't be able to do any of the SMB or share checks"
+}
+
+if (-not(Test-Path -Path $Certipy_Path)) {
+	Write-Host -ForegroundColor Red "$Certipy_Path doesn't exist."
+	Write-Host -ForegroundColor Red "Won't be able to retrieve ADCS templates and check for vulnerabilities"
 }
 
 # Check for sysvol and netlogon keys hardened unc paths
@@ -195,11 +217,20 @@ Start ADChecks with all modules
 		
 		[Parameter(Mandatory = $false)]
 		[Switch]
-		$SkipEmptyPasswordGuess
+		$SkipEmptyPasswordGuess,
+
+		[Parameter(Mandatory = $false)]
+		[Switch]
+		$SkipDNSChanges
 	)
 	
-	Write-Verbose "[++] Executing Invoke-ChangeDNS"
-	Invoke-ChangeDNS -Domain $Domain -Server $Server
+	if ($SkipDNSChanges){
+		Write-Verbose "[++] No changes were made to your network configuration"
+	}
+	else {
+		Write-Verbose "[++] Executing Invoke-ChangeDNS"
+		Invoke-ChangeDNS -Domain $Domain -Server $Server
+	}
 	
 	Write-Verbose "[++] Executing Test-ADAuthentication"
 	Test-ADAuthentication -Domain $Domain -Server $Server -User $User -Password $Password | Out-Null
@@ -235,11 +266,8 @@ Start ADChecks with all modules
 		
 		Write-Host "---------- EXECUTING CHECKS ----------"
 		
-		Write-Host "[+] Executing in another window because runas is required"
-		Write-Host -ForegroundColor Yellow "[+] Please manually supply the Password $Password"
-		
 		"--- Running SQL checks in new window ---"
-		runas /noprofile /env /netonly /user:$Domain\$User "powershell.exe -Exec bypass -NoExit Import-Module $PSCommandPath; Set-Variable Findings_Path -Value $OutputDirectory_Path\findings; Set-Variable Data_Path -Value $OutputDirectory_Path\data; Set-Variable Checks_Path -Value $OutputDirectory_Path\checks; Set-Variable OutputDirectoryCreated -Value $OutputDirectoryCreated; Invoke-ADCheckSQL -Domain $Domain -Server $Server -User $User -Password '$Password' -SkipPrompt"
+		Invoke-RunAs -noprofile -env -netonly -user $Creds powershell.exe "-Exec bypass -NoExit Import-Module $PSCommandPath; Set-Variable Findings_Path -Value $OutputDirectory_Path\findings; Set-Variable Data_Path -Value $OutputDirectory_Path\data; Set-Variable Checks_Path -Value $OutputDirectory_Path\checks; Set-Variable OutputDirectoryCreated -Value $OutputDirectoryCreated; Invoke-ADCheckSQL -Domain $Domain -Server $Server -User $User -Password '$Password' -SkipPrompt"
 		Write-Host " "
 		
 		Invoke-ADCheckDomainFunctionalLevel -Domain $Domain -Server $Server -User $User -Password $Password
@@ -1402,8 +1430,7 @@ Start all SQL checks but skip prompt asking if the process is running as the dom
 		$confirmation = Read-Host "Do you want to start the runas process with the credentials provided ? y/n"
 		if ($confirmation -eq 'y') {
 			Write-Host "[+] Executing in another window because runas is required"
-			Write-Host -ForegroundColor Yellow "[+] Please manually supply the Password $Password"
-			runas /noprofile /env /netonly /user:$Domain\$User "powershell.exe -Exec bypass -NoExit Import-Module $PSCommandPath; Set-Variable Findings_Path -Value $OutputDirectory_Path\findings; Set-Variable Data_Path -Value $OutputDirectory_Path\data; Set-Variable Checks_Path -Value $OutputDirectory_Path\checks; Set-Variable OutputDirectoryCreated -Value $OutputDirectoryCreated; Invoke-ADCheckSQL -Domain $Domain -Server $Server -User $User -Password '$Password' -SkipPrompt"
+			Invoke-RunAs -noprofile -env -netonly -user $Creds powershell.exe "-Exec bypass -NoExit Import-Module $PSCommandPath; Set-Variable Findings_Path -Value $OutputDirectory_Path\findings; Set-Variable Data_Path -Value $OutputDirectory_Path\data; Set-Variable Checks_Path -Value $OutputDirectory_Path\checks; Set-Variable OutputDirectoryCreated -Value $OutputDirectoryCreated; Invoke-ADCheckSQL -Domain $Domain -Server $Server -User $User -Password '$Password' -SkipPrompt"
 		}
 	}
 }
@@ -2260,7 +2287,7 @@ Does only enumeration and skips the execution of impacket
 			if (-Not $PSBoundParameters['SkipRoasting']) {
 				# Run impacket and kerberoast
 				$impacket_creds = $Domain + '/' + $User + ':' + $Password
-				python $impacket_path\examples\GetUserSPNs.py -request -dc-ip $Server $impacket_creds -save -outputfile $file_hashes | Out-Null
+				& $Python_Path $impacket_path\examples\GetUserSPNs.py -request -dc-ip $Server $impacket_creds -save -outputfile $file_hashes | Out-Null
 				$hashes_count = cat $file_hashes -ErrorAction SilentlyContinue | Measure-Object | Select-Object -expand Count
 				Write-Host -ForegroundColor Yellow "[+] Requested $hashes_count hashes, please crack with hashcat"
 				Write-Host "[W] Writing to $file_hashes"
@@ -2285,7 +2312,7 @@ Does only enumeration and skips the execution of impacket
 			if (-Not $PSBoundParameters['SkipRoasting']) {
 				# Run impacket and AS-REP Roast
 				$impacket_creds = $Domain + '/' + $User + ':' + $Password
-				python $impacket_path\examples\GetNPUsers.py -request -dc-ip $Server $impacket_creds -outputfile $file_hashes | Out-Null
+				& $Python_Path $impacket_path\examples\GetNPUsers.py -request -dc-ip $Server $impacket_creds -outputfile $file_hashes | Out-Null
 				$hashes_count = cat $file_hashes -ErrorAction silentlycontinue | Measure-Object | Select-Object -expand Count
 				Write-Host -ForegroundColor Yellow "[+] Requested $hashes_count hashes, please crack with hashcat"
 				Write-Host "[W] Writing to $file_hashes"
@@ -3707,9 +3734,11 @@ Invoke-ADCheckCS -Domain 'contoso.com' -Server 'dc1.contoso.com' -User '0xjs' -P
 	if ($data){
 		$count = $data | Measure-Object | Select-Object -expand Count
 		Write-Host -ForeGroundColor Yellow "[+] ADCS installed on $count machines"
-		Write-Host -ForeGroundColor Yellow "[+] Please manually check for ADCS vulns"
 		Write-Host "[W] Writing to $file"
 		$data | Out-File $file
+
+		# Running ADCS ESC Check
+		Invoke-ADCSESCCheck -Domain $Domain -Server $Server -User $User -Password $Password 
 	}
 	else {
 		Write-Host -ForegroundColor DarkGreen "[+] ADCS not installed"
@@ -3780,7 +3809,7 @@ Invoke-ADCheckLDAP -Server 'dc1.contoso.com' -User '0xjs' -Password 'Password01!
 	}
 	
 	Write-Host "---Running LdapRelayScan---"
-	$data = python.exe $LdapRelayScan_Path -m BOTH -dc-ip $Server -u $User -p $Password 2>null
+	$data = & $Python_Path $LdapRelayScan_Path -m BOTH -dc-ip $Server -u $User -p $Password 2>null
 	$file = "$data_path\domaincontrollers_ldaprelayscan.txt"
 	Write-Host "[W] Writing to $file"
 	$data | Out-File -Encoding utf8 $file
@@ -4505,7 +4534,7 @@ Invoke-ADCheckSMB -Domain 'contoso.com' -Server 'dc1.contoso.com' -User '0xjs' -
 	# Collecting SMB data and shares with crackmapexec
 	Write-Host "---Running crackmapexec against each SMB host enumerating SMB data and shares---"
 	Write-Host -ForeGroundColor yellow "[+] Crackmapexec will hang and needs a enter to continue"
-	$data = python.exe $CME_Path smb $smbhostsfile -d $Domain -u $User -p $Password --shares 2> null
+	$data = & $NetExec_Path smb $smbhostsfile -d $Domain -u $User -p $Password --shares 2> null
 	$file = "$data_path\crackmapexec_smbcomputers.txt"
 	if ($data){ 
 			Write-Host "[W] Writing to $file"
@@ -4662,7 +4691,7 @@ Invoke-ADCheckWebclient -Domain 'contoso.com' -Server 'dc1.contoso.com' -User '0
 	
 	Write-Host "---Running crackmapexec against all smb host enumerating webclient service---"
 	Write-Host -ForeGroundColor yellow "[+] Crackmapexec will hang and needs a enter to continue"
-	$data = python.exe $CME_Path smb $smbhostsfile -d $Domain -u $User -p $Password -M webdav | Select-String "WebClient Service enabled on"
+	$data = & $NetExec_Path smb $smbhostsfile -d $Domain -u $User -p $Password -M webdav | Select-String "WebClient Service enabled on"
 	
 	if ($data){
 		# Writing all data to file
@@ -4755,7 +4784,7 @@ Invoke-ADCheckSMB -Domain 'contoso.com' -Server 'dc1.contoso.com' -User '0xjs' -
 		# Checking for local admin SMB
 		Write-Host "---Checking for local admin access over SMB---"
 		Write-Host -ForeGroundColor yellow "[+] Crackmapexec will hang and needs a enter to continue"
-		$data = python.exe $CME_Path smb $smbhostsfile -d $Domain -u $User -p $Password | Select-String "Pwn3d!"
+		$data = & $NetExec_Path smb $smbhostsfile -d $Domain -u $User -p $Password | Select-String "Pwn3d!"
 	
 		if ($data){
 			# Remove colors from the data
@@ -4786,7 +4815,7 @@ Invoke-ADCheckSMB -Domain 'contoso.com' -Server 'dc1.contoso.com' -User '0xjs' -
 		# Checking access WINRM
 		Write-Host "---Checking for access over WINRM---"
 		Write-Host -ForeGroundColor yellow "[+] Crackmapexec will hang and needs a enter to continue"
-		$data = python.exe $CME_Path winrm $winrmhostsfile -d $Domain -u $User -p $Password | Select-String "Pwn3d!"
+		$data = & $NetExec_Path winrm $winrmhostsfile -d $Domain -u $User -p $Password | Select-String "Pwn3d!"
 	
 		if ($data){
 			# Remove colors from the data
@@ -4817,7 +4846,7 @@ Invoke-ADCheckSMB -Domain 'contoso.com' -Server 'dc1.contoso.com' -User '0xjs' -
 		# Checking access RDP
 		Write-Host "---Checking for access over RDP---"
 		Write-Host -ForeGroundColor yellow "[+] Crackmapexec will hang and needs a enter to continue"
-		$data = python.exe $CME_Path rdp $rdphostsfile -d $Domain -u $User -p $Password | Select-String "Pwn3d!"
+		$data = & $NetExec_Path rdp $rdphostsfile -d $Domain -u $User -p $Password | Select-String "Pwn3d!"
 	
 		if ($data){
 			# Remove colors from the data
@@ -4848,7 +4877,7 @@ Invoke-ADCheckSMB -Domain 'contoso.com' -Server 'dc1.contoso.com' -User '0xjs' -
 	#	# Checking access MSSQL
 	#	Write-Host "---Checking for access over MSSQL WIP TO DO NO MSSQL IN LAB---"
 	#	Write-Host -ForeGroundColor yellow "[+] Crackmapexec will hang and needs a enter to continue"
-	#	$data = python.exe $CME_Path mssql $mssqlhostsfile -d $Domain -u $User -p $Password 2>/dev/null
+	#	$data = & $NetExec_Path mssql $mssqlhostsfile -d $Domain -u $User -p $Password 2>/dev/null
 	#
 	#	if ($data){
 	#		# Remove colors from the data
@@ -4871,4 +4900,157 @@ Invoke-ADCheckSMB -Domain 'contoso.com' -Server 'dc1.contoso.com' -User '0xjs' -
 	#	Write-Host -ForegroundColor DarkGreen "[+] Skipping MSSQL no hosts"
 	#}
 
+}
+
+Function Invoke-ADCSESCCheck {
+<#
+.SYNOPSIS
+Author: Stan Plasmeijer - JustRelax & Maarten van Norden
+Required Dependencies: Certipy
+Optional Dependencies: None
+
+.DESCRIPTION
+Check if there are vulnerable Certificate Templates at the ADCS
+
+.PARAMETER Domain
+Specifies the domain to use for the query and creating outputdirectory.
+
+.PARAMETER Server
+Specifies an Active Directory server IP to bind to, e.g. 10.0.0.1
+
+.PARAMETER User
+Specifies the username to use for the query.
+
+.PARAMETER Password
+Specifies the Password in combination with the username to use for the query.
+
+.PARAMETER OutputDirectory
+Specifies the path to use for the output directory, defaults to the current directory.
+
+.EXAMPLE
+Invoke-ADCheckSMB -Domain 'contoso.com' -Server 'dc1.contoso.com' -User '0xjs' -Password 'Password01!'
+#>
+
+	#Parameters
+	[CmdletBinding()]
+	Param(
+		[Parameter(Mandatory=$true,HelpMessage="Enter a domain name here, e.g. contoso.com")]
+		[ValidateNotNullOrEmpty()]
+		[string]$Domain,
+		
+		[Parameter(Mandatory=$true,HelpMessage="Enter a IP of a domain controller here, e.g. 10.0.0.1")]
+		[ValidateNotNullOrEmpty()]
+		[string]$Server,
+		
+		[Parameter(Mandatory=$true,HelpMessage="Enter the username to connect with")]
+		[ValidateNotNullOrEmpty()]
+		[string]$User,
+		
+		[Parameter(Mandatory=$true,HelpMessage="Enter the password of the user")]
+		[ValidateNotNullOrEmpty()]
+		[string]$Password,
+		
+		[Parameter(Mandatory=$false)]
+		[ValidateNotNullOrEmpty()]
+		[string]$OutputDirectory
+	)
+
+	if ($OutputDirectoryCreated -ne $true) {
+		if ($PSBoundParameters['OutputDirectory']) {
+			New-OutputDirectory -Domain $Domain -OutputDirectory $OutputDirectory
+			}
+			else {
+				New-OutputDirectory -Domain $Domain
+		}
+	}
+	
+	Write-Verbose "[+] Function Invoke-ADCSCheck"
+	
+	#Collect ADCS certificate templates and analyse output for any ESC vulnerabilities.
+	$certipy_creds = $User + '@' + $Domain 
+	$data = & $Certipy_Path find -u $certipy_creds -p $Password -dc-ip $Server -stdout 2>null
+	$file = "$data_path\Certipy-output.txt"
+    $data | Out-File -Encoding utf8 $file
+	Write-Host ""
+
+	Write-Host "---Checking for vulnerable Certificate templates---"
+	if ($data -Match "Vulnerabilities"){
+		Write-Host -ForegroundColor Red "[-] Vulnerable Certificate templates have been found!"
+		Write-Host ""
+
+		if ($data -Match "ESC1"){
+			$file = "$findings_path\ESC1.txt"
+			Write-Host -ForegroundColor Red "[-] ESC1 HAS BEEN FOUND"
+			Write-Host "[W] Writing to $file"
+			$data | Out-File -Encoding utf8 $file
+			Write-Host ""
+		}
+
+        if ($data -Match "ESC2"){
+            $file = "$findings_path\ESC2.txt"
+            Write-Host -ForegroundColor Red "[-] ESC2 HAS BEEN FOUND"
+            Write-Host "[W] Writing to $file"
+            $data | Out-File -Encoding utf8 $file
+			Write-Host ""
+        }
+ 
+        if ($data -Match "ESC3"){
+            $file = "$findings_path\ESC3.txt"
+            Write-Host -ForegroundColor Red "[-] ESC3 HAS BEEN FOUND"
+            Write-Host "[W] Writing to $file"
+            $data | Out-File -Encoding utf8 $file
+        	Write-Host ""
+        }
+ 
+        if ($data -Match "ESC4"){
+            $file = "$findings_path\ESC4.txt"
+            Write-Host -ForegroundColor Red "[-] ESC4 HAS BEEN FOUND"
+            Write-Host "[W] Writing to $file"
+            $data | Out-File -Encoding utf8 $file
+       		Write-Host ""
+        }
+ 
+        if ($data -Match "ESC7"){
+            $file = "$findings_path\ESC7.txt"
+            Write-Host -ForegroundColor Red "[-] ESC7 HAS BEEN FOUND"
+            Write-Host "[W] Writing to $file"
+            $data | Out-File -Encoding utf8 $file
+        	Write-Host ""
+        }
+ 
+        if ($data -Match "ESC8"){
+            $file = "$findings_path\ESC8.txt"
+            Write-Host -ForegroundColor Red "[+] ESC8 HAS BEEN FOUND"
+            Write-Host "[W] Writing to $file"
+            $data | Out-File -Encoding utf8 $file
+        	Write-Host ""
+        }
+ 
+        if ($data -Match "ESC9"){
+            $file = "$findings_path\ESC9.txt"
+            Write-Host -ForegroundColor Red "[-] ESC9 HAS BEEN FOUND"
+            Write-Host "[W] Writing to $file"
+            $data | Out-File -Encoding utf8 $file
+        	Write-Host ""
+        }
+ 
+        if ($data -Match "ESC10"){
+            $file = "$findings_path\ESC10.txt"
+            Write-Host -ForegroundColor Red "[-] ESC10 HAS BEEN FOUND"
+            Write-Host "[W] Writing to $file"
+            $data | Out-File -Encoding utf8 $file
+        	Write-Host ""
+        }
+ 
+        if ($data -Match "ESC11"){
+            $file = "$findings_path\ESC11.txt"
+            Write-Host -ForegroundColor Red "[-] ESC11 HAS BEEN FOUND"
+            Write-Host "[W] Writing to $file"
+            $data | Out-File -Encoding utf8 $file
+        	Write-Host ""
+        }
+	}
+	else{
+		Write-Host -ForegroundColor DarkGreen "[+] No vulnerable Certificate templates have been found for the current user!"
+	}
 }
