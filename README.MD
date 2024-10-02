@@ -3,6 +3,7 @@ The tool is a wrapper around PowerView, Impacket, PowerUpSQL, BloodHound, Ldapre
 
 ## Installation & Setup
 - Install python 3.10 (For example from the Windows store)
+- Then run the commands below to install some dependancies
 ```
 git clone https://github.com/0xJs/domain_audit
 cd .\domain_audit\import\
