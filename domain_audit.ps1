@@ -206,7 +206,10 @@ Start ADChecks with all modules
 
 	if ($CredentialStatus -eq $false) {
 		Write-Host -ForegroundColor Red "[-] Exiting, please provide a valid set of credentials"
-		return
+
+  		Invoke-EmptyDNS
+    
+		break
 	}
  
 	if ($User -ne $Creds.Username) {
@@ -305,7 +308,8 @@ Start ADChecks with all modules
 		Invoke-ADCheckWebclient -Domain $Domain -Server $Server -User $User -Password $Password
 		
 		Invoke-ADCheckAccess -Domain $Domain -Server $Server -User $User -Password $Password
-		
+
+  		Invoke-EmptyDNS
 	}
 }
 
@@ -424,6 +428,49 @@ Change DNS Server to 10.0.0.1 and write 10.0.0.1 contoso.com to the hosts file
 			exit
 			}
 		}
+}
+
+Function Invoke-EmptyDNS {
+<#
+.SYNOPSIS
+Author: Jony Schats - 0xjs
+Required Dependencies: None
+Optional Dependencies: None
+
+.DESCRIPTION
+Checks if powershell is running as admin and then reset the DNS for each interface.
+
+.PARAMETER Server
+Specifies an Active Directory server IP to bind to, e.g. 10.0.0.1
+
+.PARAMETER Domain
+Specifies the domain to place with the Server in the hosts file e.g. contoso.com.
+
+.EXAMPLE
+Invoke-EmptyDNS
+#>	
+
+	#Parameters
+	[CmdletBinding()]
+	Param()
+	
+	Write-Verbose "[+] Function Invoke-EmptyDNS"
+	
+	#Check if running as administrator and if yes then change dns and hostfile!
+	$id = [System.Security.Principal.WindowsIdentity]::GetCurrent()
+	$p = New-Object System.Security.Principal.WindowsPrincipal($id)
+	if ($p.IsInRole([System.Security.Principal.WindowsBuiltInRole]::Administrator)){
+		Write-Host "[+] Running as administrator, Clearing DNS"
+		Write-Verbose "[+] Running as administrator"
+		
+		# Set DNS for adapter
+		Write-Verbose "[+] Clearing DNS for each adapter"
+		$interfaces = Get-DnsClientServerAddress
+		
+		foreach($interface in $interfaces){
+			Set-DnsClientServerAddress -InterfaceIndex $interface.InterfaceIndex -ResetServerAddresses
+		}
+	}
 }
 
 Function New-OutputDirectory {
