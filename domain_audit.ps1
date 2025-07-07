@@ -1057,7 +1057,6 @@ Enumerate trusts for contoso.com and save output in C:\temp\
 		9 = "Windows Server 2022"
 		10 = "Windows Server 2025"         # newly added
 	}
-	$DomainFunctionalLevel = $DomainMode[$DomainData.DomainModeLevel]
 	Write-Host "---Checking domain functional level---"
 	$DomainFunctionalLevel = $DomainMode[$DomainData.DomainModeLevel]
 	$file = "$findings_path\domainfunctionallevel.txt"
