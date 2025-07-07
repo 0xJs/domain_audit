@@ -1046,20 +1046,23 @@ Enumerate trusts for contoso.com and save output in C:\temp\
 	# Defining domain functional levels
 	$DomainMode = @{
 		0 = "Windows 2000 native"
-		1 = "Windows 2003 interim"
-		2 = "Windows 2003"
-		3 = "Windows 2008"
-		4 = "Windows 2008 R2"
-		5 = "Windows 2012"
-		6 = "Windows 2012 R2"
-		7 = "Windows 2016"
-		8 = "TBD"
+		1 = "Windows Server 2003 interim"
+		2 = "Windows Server 2003"
+		3 = "Windows Server 2008"
+		4 = "Windows Server 2008 R2"
+		5 = "Windows Server 2012"
+		6 = "Windows Server 2012 R2"
+		7 = "Windows Server 2016"
+		8 = "Windows Server 2019"         # formerly TBD
+		9 = "Windows Server 2022"
+		10 = "Windows Server 2025"         # newly added
 	}
+	$DomainFunctionalLevel = $DomainMode[$DomainData.DomainModeLevel]
 	Write-Host "---Checking domain functional level---"
 	$DomainFunctionalLevel = $DomainMode[$DomainData.DomainModeLevel]
 	$file = "$findings_path\domainfunctionallevel.txt"
 	
-	if ($DomainFunctionalLevel -Notlike "Windows 2016"){
+	if ($DomainFunctionalLevel -Notlike "Windows 2025"){
 		Write-Host -ForegroundColor Red "[+] The domain functional level is $DomainFunctionalLevel"
 		Write-Host "[W] Writing to $file"
 		$DomainData | Out-File $file
